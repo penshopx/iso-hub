@@ -1,10 +1,10 @@
-# Active Context: Next.js Starter Template
+# Active Context: ISO Management System
 
 ## Current State
 
-**Template Status**: ✅ Ready for development
+**Project Status**: ✅ Building ISO Management System
 
-The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. It's ready for AI-assisted expansion to build any type of application.
+A Next.js application for managing ISO certifications (ISO 45001 K3, ISO 14001 Lingkungan), audits, and training (BIMTEK).
 
 ## Recently Completed
 
@@ -14,6 +14,13 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] ESLint configuration
 - [x] Memory bank documentation
 - [x] Recipe system for common features
+- [x] ISO Management System dashboard with navigation
+- [x] ISO 45001 (K3) page
+- [x] ISO 14001 (Lingkungan) page
+- [x] Pelatihan/BIMTEK page
+- [x] Audit Internal page
+- [x] Audit Eksternal page
+- [x] ISO Generator page
 
 ## Current Structure
 
@@ -26,11 +33,13 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 
 ## Current Focus
 
-The template is ready. Next steps depend on user requirements:
-
-1. What type of application to build
-2. What features are needed
-3. Design/branding preferences
+ISO Management System - Building out core features:
+- Dashboard with navigation to all modules
+- ISO 45001 (K3) management
+- ISO 14001 (Lingkungan) management
+- Pelatihan BIMTEK
+- Audit Internal & Eksternal
+- ISO Document Generator
 
 ## Quick Start Guide
 
@@ -85,3 +94,4 @@ export async function GET() {
 | Date | Changes |
 |------|---------|
 | Initial | Template created with base setup |
+| 2026-03-14 | Cloud fork session, built ISO Management System with 6 main modules |

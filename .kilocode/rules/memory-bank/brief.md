@@ -1,48 +1,42 @@
-# Project Brief: Next.js Starter Template
+# Project Brief: ISO Management System
 
 ## Purpose
 
-This is a minimal Next.js starter template designed for AI-assisted development. It provides a clean foundation that can be extended to build any type of web application through interaction with an AI assistant.
+A Next.js web application for managing ISO certifications, audits, and training (BIMTEK) for Indonesian companies. The system provides centralized management of ISO 45001 (K3), ISO 14001 (Lingkungan), internal/external audits, and document generation.
 
 ## Target Users
 
-- Developers wanting a clean Next.js starting point
-- Users building applications through AI-assisted coding
-- Teams needing a standardized, modern Next.js setup
+- Indonesian companies seeking ISO certification
+- ISO consultants and auditors
+- HR/Training departments managing BIMTEK
+- Quality assurance teams
 
-## Core Use Case
-
-Users describe what they want to build to an AI assistant, which then expands this template by:
-
-1. Adding components and pages as needed
-2. Installing additional dependencies
-3. Setting up databases, authentication, etc. using recipes
-4. Customizing styling and branding
-
-## Key Requirements
+## Core Features
 
 ### Must Have
+- Dashboard with navigation to all modules
+- ISO 45001 (K3) - Kesehatan dan Keselamatan Kerja
+- ISO 14001 - Sistem Manajemen Lingkungan
+- Pelatihan BIMTEK - Bimbingan Teknis
+- Audit Internal management
+- Audit Eksternal / Sertifikasi
+- ISO Document Generator
 
-- Modern Next.js 16 setup with App Router
-- TypeScript for type safety
-- Tailwind CSS 4 for styling
-- ESLint for code quality
-- Clean, minimal starting structure
-- Bun as package manager
+### Modules
 
-### Nice to Have
+| Module | Route | Description |
+|--------|-------|-------------|
+| Dashboard | `/` | Main dashboard with navigation |
+| ISO 45001 | `/iso/iso45001` | K3 documents, hazard identification, incidents |
+| ISO 14001 | `/iso/iso14001` | Environmental documents, aspects, monitoring |
+| Pelatihan | `/iso/pelatihan` | Training programs, participants, certificates |
+| Audit Internal | `/audit-internal` | Schedule, findings, corrective actions |
+| Audit Eksternal | `/audit-eksternal` | Certification body, surveillance |
+| ISO Generator | `/iso-generator` | Generate policies, procedures, forms |
 
-- Recipe system for common additions (database, auth)
-- Memory bank for AI context persistence
-- Clear development guidelines
+## Tech Stack
 
-## Success Metrics
-
-- Clean, zero-error TypeScript setup
-- Passing lint and type checks
-
-## Constraints
-
-- Minimal dependencies by default
-- Framework: Next.js 16 + React 19 + Tailwind CSS 4
-- Package manager: Bun
+- Next.js 16 with App Router
+- TypeScript
+- Tailwind CSS 4
+- Bun package manager
