@@ -124,11 +124,6 @@ Platform yang menghubungkan pencari dan pemberi layanan ISO - seperti ride-shari
 
 | Date | Changes |
 |------|---------|
-| 2026-03-18 | Transformed to ISO Hub - platform like ride-sharing for ISO consulting |
-| 2026-03-18 | Added Learning, Produktivitas modules |
-| 2026-03-18 | Added Agents (AI Control Center) and OPC CLAW (multi-agent orchestration) |
-| 2026-03-18 | Updated dashboard navigation with Agents & OPC menu items |
-| 2026-03-18 | Added industry best practice modules: Risk Management (ISO 31000), Incident Management (CAPA), Vendor Management (ISO 28000), Certification Body Directory, Compliance Calendar |
-| 2026-03-18 | Added Audit Management (ISO 19011), KPI Dashboard (BSC), Calibration (ISO 10012), Change Control |
-| 2026-03-18 | Created powerful backend with expanded schema (45+ tables), REST API v1, CRUD operations, activity logging, export, search |
-| 2026-03-18 | Strengthened backend with agentic Chat API - intent detection, progressive response, command execution, mentoring system |
+| 2026-03-18 | Added Multi-Agent System with 22 industries (Orchestrator + Specialist agents pattern) |
+| 2026-03-18 | Added agent specs: Sales (9), Retail (10), Manufacturing (8), Finance (12), Healthcare (8), IT/Tech (8), Education (7), Customer Service (4), Personal Development (15), Engineering (4) |
+| 2026-03-18 | Committed all changes - typecheck passes ✅ |
