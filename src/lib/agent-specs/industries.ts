@@ -57,25 +57,6 @@ export const LEGAL_SPECIALISTS: AgentSpec[] = [
   { id: "complianceLegalAgent", name: "Compliance Legal Agent", role: "Compliance", industry: "legal", system_prompt: "Fokus: regulatory compliance, risk assessment, audit. Deliverables: Compliance SOP, Risk Assessment, Audit Process.", deliverables: ["Compliance SOP", "Risk", "Audit"], dependencies: ["isoLegalOrchestrator"] }
 ];
 
-// ============ HR ============
-export const HR_ORCHESTRATOR: AgentSpec = {
-  id: "isoHROrchestrator",
-  name: "ISO HR Orchestrator",
-  role: "Orchestrator",
-  industry: "hr",
-  system_prompt: `Kamu adalah \`isoHROrchestrator\`. Pimpin ISO HR Management dengan fokus recruitment, performance, compensation, employee relations.`,
-  deliverables: ["HR Process Map", "Talent Management System", "Employee Relations System"],
-  dependencies: []
-};
-
-export const HR_SPECIALISTS: AgentSpec[] = [
-  { id: "recruitmentAgent", name: "Recruitment Agent", role: "Recruitment Manager", industry: "hr", system_prompt: "Fokus: talent acquisition, onboarding, employer branding. Deliverables: Recruitment SOP, Onboarding Process, Interview Guidelines.", deliverables: ["Recruitment SOP", "Onboarding", "Interview"], dependencies: ["isoHROrchestrator"] },
-  { id: "performanceAgent", name: "Performance Agent", role: "Performance Manager", industry: "hr", system_prompt: "Fokus: performance management, KPI, appraisal. Deliverables: Performance SOP, Appraisal Process, KPI Framework.", deliverables: ["Performance SOP", "Appraisal", "KPI"], dependencies: ["isoHROchestrator"] },
-  { id: "compensationAgent", name: "Compensation Agent", role: "Compensation Manager", industry: "hr", system_prompt: "Fokus: payroll, benefits, compensation structure. Deliverables: Compensation SOP, Payroll Process, Benefits Administration.", deliverables: ["Compensation SOP", "Payroll", "Benefits"], dependencies: ["isoHROrchestrator"] },
-  { id: "employeeRelationAgent", name: "Employee Relations Agent", role: "ER Manager", industry: "hr", system_prompt: "Fokus: employee engagement, grievances, conflict resolution. Deliverables: ER SOP, Grievance Process, Engagement Survey.", deliverables: ["ER SOP", "Grievance", "Engagement"], dependencies: ["isoHROrchestrator"] },
-  { id: "trainingAgent", name: "Training Agent", role: "Training Manager", industry: "hr", system_prompt: "Fokus: L&D, training delivery, competency. Deliverables: Training SOP, Learning Program, Competency Assessment.", deliverables: ["Training SOP", "Learning", "Competency"], dependencies: ["isoHROrchestrator"] }
-];
-
 // ============ MARKETING ============
 export const MARKETING_ORCHESTRATOR: AgentSpec = {
   id: "isoMarketingOrchestrator",

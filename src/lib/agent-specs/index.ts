@@ -9,6 +9,7 @@ export * from "./education";
 export * from "./customer-service";
 export * from "./personal-development";
 export * from "./engineering";
+export * from "./hr";
 export * from "./industries";
 
 import { AgentSpec } from "./types";
@@ -22,6 +23,7 @@ import { EDUCATION_ORCHESTRATOR, EDUCATION_SPECIALISTS } from "./education";
 import { CUSTOMER_SERVICE_ORCHESTRATOR, CUSTOMER_SERVICE_SPECIALISTS } from "./customer-service";
 import { PERSONAL_DEVELOPMENT_ORCHESTRATOR, PERSONAL_DEVELOPMENT_SPECIALISTS } from "./personal-development";
 import { ENGINEERING_ORCHESTRATOR, ENGINEERING_SPECIALISTS } from "./engineering";
+import { HR_ORCHESTRATOR as HR_ORCH_NEW, HR_SPECIALISTS as HR_SPECS_NEW } from "./hr";
 
 export const ALL_ORCHESTRATORS: AgentSpec[] = [
   SALES_ORCHESTRATOR,
@@ -33,7 +35,8 @@ export const ALL_ORCHESTRATORS: AgentSpec[] = [
   EDUCATION_ORCHESTRATOR,
   CUSTOMER_SERVICE_ORCHESTRATOR,
   PERSONAL_DEVELOPMENT_ORCHESTRATOR,
-  ENGINEERING_ORCHESTRATOR
+  ENGINEERING_ORCHESTRATOR,
+  HR_ORCH_NEW
 ];
 
 export const INDUSTRY_LIST = [
@@ -74,6 +77,7 @@ export function getOrchestratorByIndustry(industry: string): AgentSpec | undefin
     case "healthcare": return HEALTHCARE_ORCHESTRATOR;
     case "it": return IT_ORCHESTRATOR;
     case "education": return EDUCATION_ORCHESTRATOR;
+    case "hr": return HR_ORCH_NEW;
     default: return undefined;
   }
 }
@@ -90,6 +94,7 @@ export function getSpecialistsByIndustry(industry: string): AgentSpec[] {
     case "healthcare": return HEALTHCARE_SPECIALISTS;
     case "it": return IT_SPECIALISTS;
     case "education": return EDUCATION_SPECIALISTS;
+    case "hr": return HR_SPECS_NEW;
     default: return [];
   }
 }
