@@ -1,6 +1,22 @@
 import Link from "next/link";
+import { db } from "@/db";
+import { internalAudits, auditFindings, correctiveActions } from "@/db/schema";
 
-export default function AuditInternalPage() {
+async function getData() {
+  const audits = await db.select().from(internalAudits);
+  const findings = await db.select().from(auditFindings);
+  const actions = await db.select().from(correctiveActions);
+  
+  return {
+    audits: audits.length,
+    findings: findings.length,
+    actions: actions.length,
+  };
+}
+
+export default async function AuditInternalPage() {
+  const data = await getData();
+
   return (
     <main className="min-h-screen bg-neutral-900 text-white">
       <header className="border-b border-neutral-800 bg-neutral-900/50 backdrop-blur-sm sticky top-0 z-10">
@@ -13,7 +29,7 @@ export default function AuditInternalPage() {
             </Link>
             <div>
               <h1 className="text-xl font-semibold">Audit Internal</h1>
-              <p className="text-sm text-neutral-400">Kelola audit internalISO</p>
+              <p className="text-sm text-neutral-400">Kelola audit internal ISO</p>
             </div>
           </div>
         </div>
@@ -29,7 +45,8 @@ export default function AuditInternalPage() {
             </div>
             <h3 className="font-semibold mb-2">Jadwal Audit</h3>
             <p className="text-sm text-neutral-400 mb-4">Kelola jadwal audit internal</p>
-            <button className="text-sm text-blue-400 hover:text-blue-300">Lihat Jadwal</button>
+            <div className="text-2xl font-bold text-purple-400">{data.audits}</div>
+            <div className="text-xs text-neutral-500">audit terjadwal</div>
           </div>
 
           <div className="p-6 bg-neutral-800 rounded-lg border border-neutral-700">
@@ -40,7 +57,8 @@ export default function AuditInternalPage() {
             </div>
             <h3 className="font-semibold mb-2">Temuan Audit</h3>
             <p className="text-sm text-neutral-400 mb-4">Daftar temuan dan ketidaksesuaian</p>
-            <button className="text-sm text-blue-400 hover:text-blue-300">Lihat Temuan</button>
+            <div className="text-2xl font-bold text-pink-400">{data.findings}</div>
+            <div className="text-xs text-neutral-500">temuan</div>
           </div>
 
           <div className="p-6 bg-neutral-800 rounded-lg border border-neutral-700">
@@ -51,7 +69,8 @@ export default function AuditInternalPage() {
             </div>
             <h3 className="font-semibold mb-2">Tindakan Koreksi</h3>
             <p className="text-sm text-neutral-400 mb-4">Verifikasi dan closing temuan</p>
-            <button className="text-sm text-blue-400 hover:text-blue-300">Lihat Tindakan</button>
+            <div className="text-2xl font-bold text-rose-400">{data.actions}</div>
+            <div className="text-xs text-neutral-500">tindakan koreksi</div>
           </div>
         </div>
       </div>

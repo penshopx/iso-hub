@@ -1,6 +1,23 @@
 import Link from "next/link";
+import { db } from "@/db";
+import { isoDocuments, hazards, incidents } from "@/db/schema";
 
-export default function Iso45001Page() {
+async function getData() {
+  const allDocuments = await db.select().from(isoDocuments);
+  const documents = allDocuments.filter(d => d.category === "iso45001");
+  const hazardsData = await db.select().from(hazards);
+  const incidentsData = await db.select().from(incidents);
+  
+  return {
+    documents: documents.length,
+    hazards: hazardsData.length,
+    incidents: incidentsData.length,
+  };
+}
+
+export default async function Iso45001Page() {
+  const data = await getData();
+
   return (
     <main className="min-h-screen bg-neutral-900 text-white">
       <header className="border-b border-neutral-800 bg-neutral-900/50 backdrop-blur-sm sticky top-0 z-10">
@@ -29,7 +46,8 @@ export default function Iso45001Page() {
             </div>
             <h3 className="font-semibold mb-2">Dokumen K3</h3>
             <p className="text-sm text-neutral-400 mb-4">Kelola dokumen kebijakan dan prosedur K3</p>
-            <button className="text-sm text-blue-400 hover:text-blue-300">Lihat Documents</button>
+            <div className="text-2xl font-bold text-red-400">{data.documents}</div>
+            <div className="text-xs text-neutral-500">dokumen</div>
           </div>
 
           <div className="p-6 bg-neutral-800 rounded-lg border border-neutral-700">
@@ -39,8 +57,9 @@ export default function Iso45001Page() {
               </svg>
             </div>
             <h3 className="font-semibold mb-2">Identifikasi Bahaya</h3>
-            <p className="text-sm text-neutral-400 mb-4">identifikasi dan оценка risiko K3</p>
-            <button className="text-sm text-blue-400 hover:text-blue-300">Lihat Hazards</button>
+            <p className="text-sm text-neutral-400 mb-4">Identifikasi dan evaluasi risiko K3</p>
+            <div className="text-2xl font-bold text-orange-400">{data.hazards}</div>
+            <div className="text-xs text-neutral-500">identifikasi bahaya</div>
           </div>
 
           <div className="p-6 bg-neutral-800 rounded-lg border border-neutral-700">
@@ -51,7 +70,8 @@ export default function Iso45001Page() {
             </div>
             <h3 className="font-semibold mb-2">Insiden K3</h3>
             <p className="text-sm text-neutral-400 mb-4">Pelaporan dan investigasi insiden</p>
-            <button className="text-sm text-blue-400 hover:text-blue-300">Lihat Insiden</button>
+            <div className="text-2xl font-bold text-green-400">{data.incidents}</div>
+            <div className="text-xs text-neutral-500">insiden</div>
           </div>
         </div>
       </div>

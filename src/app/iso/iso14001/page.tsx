@@ -1,6 +1,23 @@
 import Link from "next/link";
+import { db } from "@/db";
+import { isoDocuments, environmentalAspects, environmentalMonitoring } from "@/db/schema";
 
-export default function Iso14001Page() {
+async function getData() {
+  const allDocuments = await db.select().from(isoDocuments);
+  const documents = allDocuments.filter(d => d.category === "iso14001");
+  const aspects = await db.select().from(environmentalAspects);
+  const monitoring = await db.select().from(environmentalMonitoring);
+  
+  return {
+    documents: documents.length,
+    aspects: aspects.length,
+    monitoring: monitoring.length,
+  };
+}
+
+export default async function Iso14001Page() {
+  const data = await getData();
+
   return (
     <main className="min-h-screen bg-neutral-900 text-white">
       <header className="border-b border-neutral-800 bg-neutral-900/50 backdrop-blur-sm sticky top-0 z-10">
@@ -29,7 +46,8 @@ export default function Iso14001Page() {
             </div>
             <h3 className="font-semibold mb-2">Dokumen Lingkungan</h3>
             <p className="text-sm text-neutral-400 mb-4">Kelola dokumen kebijakan dan prosedur lingkungan</p>
-            <button className="text-sm text-blue-400 hover:text-blue-300">Lihat Documents</button>
+            <div className="text-2xl font-bold text-green-400">{data.documents}</div>
+            <div className="text-xs text-neutral-500">dokumen</div>
           </div>
 
           <div className="p-6 bg-neutral-800 rounded-lg border border-neutral-700">
@@ -40,7 +58,8 @@ export default function Iso14001Page() {
             </div>
             <h3 className="font-semibold mb-2">Aspek Dampak Lingkungan</h3>
             <p className="text-sm text-neutral-400 mb-4">Identifikasi dan evaluasi aspek lingkungan</p>
-            <button className="text-sm text-blue-400 hover:text-blue-300">Lihat Aspek</button>
+            <div className="text-2xl font-bold text-teal-400">{data.aspects}</div>
+            <div className="text-xs text-neutral-500">aspek lingkungan</div>
           </div>
 
           <div className="p-6 bg-neutral-800 rounded-lg border border-neutral-700">
@@ -51,7 +70,8 @@ export default function Iso14001Page() {
             </div>
             <h3 className="font-semibold mb-2">Pemantauan Lingkungan</h3>
             <p className="text-sm text-neutral-400 mb-4">Monitoring dan pengukuran parameter lingkungan</p>
-            <button className="text-sm text-blue-400 hover:text-blue-300">Lihat Monitoring</button>
+            <div className="text-2xl font-bold text-emerald-400">{data.monitoring}</div>
+            <div className="text-xs text-neutral-500">data monitoring</div>
           </div>
         </div>
       </div>

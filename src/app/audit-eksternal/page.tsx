@@ -1,6 +1,20 @@
 import Link from "next/link";
+import { db } from "@/db";
+import { externalAudits, certifications } from "@/db/schema";
 
-export default function AuditEksternalPage() {
+async function getData() {
+  const audits = await db.select().from(externalAudits);
+  const certs = await db.select().from(certifications);
+  
+  return {
+    audits: audits.length,
+    certifications: certs.length,
+  };
+}
+
+export default async function AuditEksternalPage() {
+  const data = await getData();
+
   return (
     <main className="min-h-screen bg-neutral-900 text-white">
       <header className="border-b border-neutral-800 bg-neutral-900/50 backdrop-blur-sm sticky top-0 z-10">
@@ -29,7 +43,8 @@ export default function AuditEksternalPage() {
             </div>
             <h3 className="font-semibold mb-2">Cari Lembaga</h3>
             <p className="text-sm text-neutral-400 mb-4">Cari dan pilih lembaga sertifikasi</p>
-            <button className="text-sm text-blue-400 hover:text-blue-300">Cari Lembaga</button>
+            <div className="text-2xl font-bold text-orange-400">{data.audits}</div>
+            <div className="text-xs text-neutral-500">audit terjadwal</div>
           </div>
 
           <div className="p-6 bg-neutral-800 rounded-lg border border-neutral-700">
@@ -40,7 +55,8 @@ export default function AuditEksternalPage() {
             </div>
             <h3 className="font-semibold mb-2">Audit Tahunan</h3>
             <p className="text-sm text-neutral-400 mb-4">Jadwal audit surveilans</p>
-            <button className="text-sm text-blue-400 hover:text-blue-300">Lihat Jadwal</button>
+            <div className="text-2xl font-bold text-amber-400">{data.audits}</div>
+            <div className="text-xs text-neutral-500">audit surveilans</div>
           </div>
 
           <div className="p-6 bg-neutral-800 rounded-lg border border-neutral-700">
@@ -50,8 +66,9 @@ export default function AuditEksternalPage() {
               </svg>
             </div>
             <h3 className="font-semibold mb-2">Sertifikasi</h3>
-            <p className="text-sm text-neutral-400 mb-4">Status dan renewalsertifikasi</p>
-            <button className="text-sm text-blue-400 hover:text-blue-300">Lihat Status</button>
+            <p className="text-sm text-neutral-400 mb-4">Status dan renewal sertifikasi</p>
+            <div className="text-2xl font-bold text-yellow-400">{data.certifications}</div>
+            <div className="text-xs text-neutral-500">sertifikasi aktif</div>
           </div>
         </div>
       </div>

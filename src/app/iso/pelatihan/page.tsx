@@ -1,6 +1,22 @@
 import Link from "next/link";
+import { db } from "@/db";
+import { trainingPrograms, participants, certificates } from "@/db/schema";
 
-export default function PelatihanPage() {
+async function getData() {
+  const programs = await db.select().from(trainingPrograms);
+  const participantsData = await db.select().from(participants);
+  const certs = await db.select().from(certificates);
+  
+  return {
+    programs: programs.length,
+    participants: participantsData.length,
+    certificates: certs.length,
+  };
+}
+
+export default async function PelatihanPage() {
+  const data = await getData();
+
   return (
     <main className="min-h-screen bg-neutral-900 text-white">
       <header className="border-b border-neutral-800 bg-neutral-900/50 backdrop-blur-sm sticky top-0 z-10">
@@ -29,7 +45,8 @@ export default function PelatihanPage() {
             </div>
             <h3 className="font-semibold mb-2">Daftar Pelatihan</h3>
             <p className="text-sm text-neutral-400 mb-4">Kelola program pelatihan BIMTEK</p>
-            <button className="text-sm text-blue-400 hover:text-blue-300">Lihat Pelatihan</button>
+            <div className="text-2xl font-bold text-blue-400">{data.programs}</div>
+            <div className="text-xs text-neutral-500">program pelatihan</div>
           </div>
 
           <div className="p-6 bg-neutral-800 rounded-lg border border-neutral-700">
@@ -40,7 +57,8 @@ export default function PelatihanPage() {
             </div>
             <h3 className="font-semibold mb-2">Peserta</h3>
             <p className="text-sm text-neutral-400 mb-4">Kelola data peserta pelatihan</p>
-            <button className="text-sm text-blue-400 hover:text-blue-300">Lihat Peserta</button>
+            <div className="text-2xl font-bold text-indigo-400">{data.participants}</div>
+            <div className="text-xs text-neutral-500">peserta</div>
           </div>
 
           <div className="p-6 bg-neutral-800 rounded-lg border border-neutral-700">
@@ -51,7 +69,8 @@ export default function PelatihanPage() {
             </div>
             <h3 className="font-semibold mb-2">Sertifikat</h3>
             <p className="text-sm text-neutral-400 mb-4">Generate dan kelola sertifikat</p>
-            <button className="text-sm text-blue-400 hover:text-blue-300">Lihat Sertifikat</button>
+            <div className="text-2xl font-bold text-violet-400">{data.certificates}</div>
+            <div className="text-xs text-neutral-500">sertifikat</div>
           </div>
         </div>
       </div>

@@ -1,6 +1,21 @@
 import Link from "next/link";
+import { db } from "@/db";
+import { generatedDocuments, isoDocuments } from "@/db/schema";
 
-export default function IsoGeneratorPage() {
+async function getData() {
+  const generated = await db.select().from(generatedDocuments);
+  const allTemplates = await db.select().from(isoDocuments);
+  const templates = allTemplates.filter(d => d.type === "template");
+  
+  return {
+    generated: generated.length,
+    templates: templates.length,
+  };
+}
+
+export default async function IsoGeneratorPage() {
+  const data = await getData();
+
   return (
     <main className="min-h-screen bg-neutral-900 text-white">
       <header className="border-b border-neutral-800 bg-neutral-900/50 backdrop-blur-sm sticky top-0 z-10">
@@ -53,6 +68,12 @@ export default function IsoGeneratorPage() {
             <p className="text-sm text-neutral-400 mb-4">Generate formulir dokumen</p>
             <button className="text-sm text-blue-400 hover:text-blue-300">Buat Formulir</button>
           </div>
+        </div>
+
+        <div className="mt-8 p-6 bg-neutral-800 rounded-lg border border-neutral-700">
+          <h3 className="font-semibold mb-4">Dokumen yang Telah Dibuat</h3>
+          <div className="text-3xl font-bold text-cyan-400">{data.generated}</div>
+          <div className="text-sm text-neutral-500">dokumen dihasilkan</div>
         </div>
       </div>
     </main>
