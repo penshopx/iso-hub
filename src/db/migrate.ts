@@ -16,12 +16,16 @@ const statements = migration.split(";").filter(s => s.trim());
 for (const stmt of statements) {
   if (stmt.trim()) {
     try {
-      client.execute(stmt);
+      await client.execute(stmt);
     } catch (e: unknown) {
       const error = e as Error;
-      console.log("Statement error (may be expected):", error.message.slice(0, 100));
+      if (error.message.includes("already exists")) {
+        console.log("Table/index already exists, skipping...");
+      } else {
+        console.log("Statement error:", error.message.slice(0, 100));
+      }
     }
   }
 }
 
-console.log("Database created successfully!");
+console.log("Database migration completed!");
