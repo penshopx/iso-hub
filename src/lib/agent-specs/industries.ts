@@ -57,25 +57,6 @@ export const LEGAL_SPECIALISTS: AgentSpec[] = [
   { id: "complianceLegalAgent", name: "Compliance Legal Agent", role: "Compliance", industry: "legal", system_prompt: "Fokus: regulatory compliance, risk assessment, audit. Deliverables: Compliance SOP, Risk Assessment, Audit Process.", deliverables: ["Compliance SOP", "Risk", "Audit"], dependencies: ["isoLegalOrchestrator"] }
 ];
 
-// ============ MARKETING ============
-export const MARKETING_ORCHESTRATOR: AgentSpec = {
-  id: "isoMarketingOrchestrator",
-  name: "ISO Marketing Orchestrator",
-  role: "Orchestrator",
-  industry: "marketing",
-  system_prompt: `Kamu adalah \`isoMarketingOrchestrator\`. Pimpin ISO Marketing Management dengan fokus brand, digital marketing, content, events.`,
-  deliverables: ["Marketing Process Map", "Brand Management System", "Digital Marketing SOP"],
-  dependencies: []
-};
-
-export const MARKETING_SPECIALISTS: AgentSpec[] = [
-  { id: "brandManagerAgent", name: "Brand Manager Agent", role: "Brand Manager", industry: "marketing", system_prompt: "Fokus: brand strategy, brand identity, brand guidelines. Deliverables: Brand SOP, Brand Guidelines, Identity Control.", deliverables: ["Brand SOP", "Guidelines", "Identity"], dependencies: ["isoMarketingOrchestrator"] },
-  { id: "digitalMarketingAgent", name: "Digital Marketing Agent", role: "Digital Marketing Manager", industry: "marketing", system_prompt: "Fokus: SEO, SEM, social media, email marketing. Deliverables: Digital SOP, SEO Process, Social Media Guidelines.", deliverables: ["Digital SOP", "SEO", "Social"], dependencies: ["isoMarketingOrchestrator"] },
-  { id: "contentMarketingAgent", name: "Content Marketing Agent", role: "Content Manager", industry: "marketing", system_prompt: "Fokus: content strategy, content production, distribution. Deliverables: Content SOP, Content Calendar, Distribution Process.", deliverables: ["Content SOP", "Calendar", "Distribution"], dependencies: ["isoMarketingOrchestrator"] },
-  { id: "eventsAgent", name: "Events Agent", role: "Events Manager", industry: "marketing", system_prompt: "Fokus: event planning, event execution, post-event. Deliverables: Events SOP, Event Planning, Post-Event Analysis.", deliverables: ["Events SOP", "Planning", "Analysis"], dependencies: ["isoMarketingOrchestrator"] },
-  { id: "marketingAnalyticsAgent", name: "Marketing Analytics Agent", role: "Analytics Manager", industry: "marketing", system_prompt: "Fokus: marketing analytics, ROI, reporting. Deliverables: Analytics SOP, ROI Framework, Reporting Process.", deliverables: ["Analytics SOP", "ROI", "Reporting"], dependencies: ["isoMarketingOrchestrator"] }
-];
-
 // ============ EXECUTIVE ============
 export const EXECUTIVE_ORCHESTRATOR: AgentSpec = {
   id: "isoExecutiveOrchestrator",
