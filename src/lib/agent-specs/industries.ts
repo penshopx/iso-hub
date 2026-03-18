@@ -163,23 +163,6 @@ export const RELIGIOUS_SPECIALISTS: AgentSpec[] = [
   { id: "communityAgent", name: "Community Agent", role: "Community Director", industry: "religious", system_prompt: "Fokus: community programs, outreach, social services. Deliverables: Community SOP, Outreach, Social Programs.", deliverables: ["Community SOP", "Outreach", "Social"], dependencies: ["isoReligiousOrchestrator"] }
 ];
 
-// ============ ADMINISTRATIVE ============
-export const ADMINISTRATIVE_ORCHESTRATOR: AgentSpec = {
-  id: "isoAdminOrchestrator",
-  name: "ISO Administrative Orchestrator",
-  role: "Orchestrator",
-  industry: "administrative",
-  system_prompt: `Kamu adalah \`isoAdminOrchestrator\`. Pimpin ISO Administrative Services dengan fokus office management, document, support.`,
-  deliverables: ["Admin Process Map", "Document Management", "Support Services"],
-  dependencies: []
-};
-
-export const ADMINISTRATIVE_SPECIALISTS: AgentSpec[] = [
-  { id: "officeManagerAgent", name: "Office Manager Agent", role: "Office Manager", industry: "administrative", system_prompt: "Fokus: office operations, facilities, utilities. Deliverables: Office SOP, Facilities, Utilities.", deliverables: ["Office SOP", "Facilities", "Utilities"], dependencies: ["isoAdminOrchestrator"] },
-  { id: "documentAdminAgent", name: "Document Admin Agent", role: "Document Manager", industry: "administrative", system_prompt: "Fokus: document management, records, archiving. Deliverables: Doc SOP, Records, Archiving.", deliverables: ["Doc SOP", "Records", "Archive"], dependencies: ["isoAdminOrchestrator"] },
-  { id: "receptionAgent", name: "Reception Agent", role: "Reception", industry: "administrative", system_prompt: "Fokus: receptionist, visitor management, communication. Deliverables: Reception SOP, Visitor, Communication.", deliverables: ["Reception SOP", "Visitor", "Comm"], dependencies: ["isoAdminOrchestrator"] }
-];
-
 // ============ CONSTRUCTION ============
 export const CONSTRUCTION_ORCHESTRATOR: AgentSpec = {
   id: "isoConstructionOrchestrator",
