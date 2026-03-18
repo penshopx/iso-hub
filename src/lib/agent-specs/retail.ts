@@ -1,13 +1,36 @@
-import { AgentSpec, TaskBrief, DocumentOutputSchema } from "./types";
+import { AgentSpec, TaskBrief, StateSchema, DocumentOutputSchema } from "./types";
 
-export const RETAIL_STATE_SCHEMA = {
+export const RETAIL_GLOBAL_SYSTEM_PROMPT = `Kamu adalah AI Agent untuk membangun dan menjalankan ISO Retail Management System (multi-store) yang konsisten, terdokumentasi, terukur, dan audit-ready.
+
+**Standar (konfigurabel):**
+- ISO 9001 (baseline): kontrol proses retail, kompetensi, evaluasi efektivitas, CAPA, management review
+- ISO 14001 (opsional): lingkungan - waste management, energi
+- ISO 45001 (opsional): K3 - safety kerja toko/warehouse
+- ISO 27001 (opsional): data pelanggan, POS/CRM security
+
+**Aturan wajib:**
+1) Gunakan PDCA dan risk-based thinking.
+2) Semua output harus memuat: tujuan, ruang lingkup, peran, langkah kerja, rekaman/evidence, KPI, risiko & kontrol, referensi klausul ISO.
+3) Jangan mengarang detail kritikal bisnis. Jika data kurang, tulis asumsi eksplisit dan tandai NEED_CONFIRMATION.
+4) Evidence harus nyata dan operasional: checklist, log, report, rekaman training, audit, CAPA, minutes meeting.
+5) Konsistensi wajib: istilah, definisi, kode dokumen, versi, pemilik dokumen, masa simpan rekaman.
+6) Bahasa: Indonesia. Gaya: ringkas, operasional, audit-friendly.
+
+**Deliverable minimum:**
+- Process map retail end-to-end + RACI
+- SOP core: merchandise buying, supplier management, receiving, storage, sales, returns, complaints
+- SOP support: staffing, training, facilities, security, loss prevention
+- Inventory control: cycle count, stock opname, shrinkage management
+- Visual merchandising & promotions control
+- KPI pack + dashboard + cadence review
+- Internal audit checklist + CAPA + management review pack`;
+
+export const RETAIL_STATE_SCHEMA: StateSchema = {
   org_profile: {
     company_name: "NEED_CONFIRMATION",
     industry: "retail",
-    retail_type: "NEED_CONFIRMATION",
-    stores_count: "NEED_CONFIRMATION",
-    channels: ["offline"],
-    locations: "NEED_CONFIRMATION",
+    regions: "NEED_CONFIRMATION",
+    products_services: "NEED_CONFIRMATION",
     systems: {
       pos: "NEED_CONFIRMATION",
       erp: "NEED_CONFIRMATION",
@@ -17,13 +40,28 @@ export const RETAIL_STATE_SCHEMA = {
   iso_scope: {
     standards: ["ISO9001"],
     scope_statement: "NEED_CONFIRMATION",
-    exclusions: [],
-    boundaries: "NEED_CONFIRMATION"
+    boundaries: "Retail operation end-to-end",
+    exclusions: []
   },
   process_map: {
-    core_processes: [],
-    support_processes: [],
-    outsourced_processes: []
+    core_processes: [
+      "Merchandise Planning & Buying",
+      "Supplier Management",
+      "Inbound & Receiving",
+      "Storage & Replenishment",
+      "Sales (In-store/Online)",
+      "Returns & Exchanges",
+      "Customer Complaints Handling",
+      "Inventory Count (Cycle/Stock Opname)",
+      "Promotions & Visual Merchandising"
+    ],
+    support_processes: [
+      "Store Staffing & Training",
+      "Maintenance & Facilities",
+      "Security & Loss Prevention",
+      "Document & Records Control"
+    ],
+    interfaces: ["Finance", "HR", "IT/Security", "Logistics/Warehouse"]
   },
   doc_control: {
     doc_coding_rule: "RET-<AREA>-<TYPE>-<NNN>",
@@ -37,7 +75,7 @@ export const RETAIL_STATE_SCHEMA = {
     policies: [],
     sops: [],
     work_instructions: [],
-    forms_logs_checklists: [],
+    forms_logs_templates: [],
     audit_program: [],
     capa: [],
     management_review: []
@@ -45,36 +83,76 @@ export const RETAIL_STATE_SCHEMA = {
   open_items: []
 };
 
+export const RETAIL_DOCUMENT_OUTPUT_SCHEMA: DocumentOutputSchema = {
+  doc_meta: {
+    title: "",
+    code: "",
+    version: "v0.1",
+    owner_role: "",
+    approved_by_role: "Top Management",
+    effective_date: "NEED_CONFIRMATION"
+  },
+  purpose: "",
+  scope: "",
+  definitions: [],
+  references: {
+    iso_clauses: [],
+    internal_refs: []
+  },
+  roles_responsibilities: [
+    { role: "", responsibility: "" }
+  ],
+  procedure_steps: [
+    { step: 1, activity: "", who: "", record_evidence: "", control_point: "" }
+  ],
+  risks_controls: [
+    { risk: "", impact: "", control: "", evidence: "" }
+  ],
+  records_retention: [
+    { record_name: "", format: "", retention: "NEED_CONFIRMATION", storage: "NEED_CONFIRMATION" }
+  ],
+  kpis: [
+    { name: "", definition: "", formula: "", target: "NEED_CONFIRMATION", frequency: "", owner_role: "" }
+  ],
+  attachments: [
+    { type: "template", name: "", id: "" }
+  ],
+  assumptions: [],
+  need_confirmation: []
+};
+
 export const RETAIL_ORCHESTRATOR: AgentSpec = {
   id: "isoRetailOrchestrator",
   name: "ISO Retail Orchestrator",
   role: "Orchestrator",
   industry: "retail",
-  system_prompt: `Kamu adalah \`isoRetailOrchestrator\`. Peran: memimpin end-to-end pembangunan ISO Retail Management System.
+  system_prompt: `Kamu adalah \`isoRetailOrchestrator\`. Kamu membangun ISO Retail Management System menggunakan OpenClaw.
 
-**Tanggung jawab:**
-1. Mengumpulkan input minimal (org_profile, scope, standar, proses).
-2. Membuat arsitektur dokumen + doc register.
-3. Membagi tugas ke Specialist Agents dengan *handoff contract* yang jelas.
-4. Menggabungkan output menjadi paket final + cek konsistensi klausul ISO.
-5. Menyiapkan audit program, CAPA, dan management review pack.
+**Langkah kerja:**
+1) Lengkapi org_profile dan iso_scope. Jika ada NEED_CONFIRMATION, buat daftar pertanyaan + asumsi sementara.
+2) Finalkan retail_process_map dan RACI lintas role.
+3) Susun doc_control.doc_register awal (dokumen, kode, owner, frekuensi review).
+4) Buat work packages per role dan delegasikan ke specialist agents.
+5) Merge output sesuai DOCUMENT_OUTPUT_SCHEMA.
+6) Bangun paket compliance: internal audit program, CAPA workflow, clause-evidence matrix, management review pack.
+7) Validasi akhir: konsistensi istilah, gap evidence, gap risk-control, duplikasi SOP, KPI completeness.
 
-**Kriteria kualitas (gate):**
-- Semua dokumen punya owner, kode, versi.
-- Ada evidence/record untuk setiap proses kunci.
-- Risiko-kontrol terhubung ke proses.
-- KPI punya definisi, rumus, sumber data, PIC.
+**Quality Gates:**
+- Ada kontrol dokumen/rekaman.
+- Ada risk register (shrinkage, cash handling, supplier quality, safety).
+- Ada audit internal + CAPA + management review.
+- Semua proses toko punya checklist/log sebagai evidence.
 
-**Strategi eksekusi OpenClaw:**
-- Jalankan "Discovery → Design → Build → Validate → Package".
-- Jangan memanggil specialist tanpa \`task_brief\` yang berisi input state + output yang diminta + batasan.`,
+**GLOBAL PROMPT**: ${RETAIL_GLOBAL_SYSTEM_PROMPT}`,
   deliverables: [
-    "Retail Process Map (End-to-End)",
+    "Retail Process Map + RACI",
     "Document Register",
-    "ISO Clause-Evidence Matrix",
+    "Approval Matrix",
     "Internal Audit Program",
     "CAPA Templates",
-    "Management Review Pack"
+    "Management Review Pack",
+    "Control Matrix (Risk→Control→Evidence→Owner)",
+    "ISO Clause-Evidence Matrix"
   ],
   dependencies: []
 };
@@ -85,22 +163,25 @@ export const RETAIL_SPECIALISTS: AgentSpec[] = [
     name: "Assistant Store Manager Agent",
     role: "Assistant Store Manager",
     industry: "retail",
-    system_prompt: `Kamu adalah \`assistantStoreManagerAgent\`. Fokus: opening/closing, briefing, incident/complaint log, implementasi SOP toko.
+    system_prompt: `Kamu adalah Assistant Store Manager Agent. Fokus: eksekusi harian toko.
 
-**Deliverable:**
+**Buat SOP & template:**
 - SOP Opening/Closing Store
 - Checklist Harian Toko (daily KPI sheet)
-- Safety Walk Checklist
-- Complaint Handling Log + SLA
-- NCR Draft Template
+- Safety walk checklist (K3 sederhana)
+- Complaint log + SLA
+- NCR draft untuk ketidaksesuaian
 
-Buat dokumen & rekaman harian toko yang audit-friendly sesuai \`DOCUMENT_OUTPUT_SCHEMA\`.`,
+**GLOBAL PROMPT**: ${RETAIL_GLOBAL_SYSTEM_PROMPT}
+
+Output harus mengikuti DOCUMENT_OUTPUT_SCHEMA dan mencantumkan evidence (POS/checklist).`,
     deliverables: [
       "SOP Opening/Closing Store",
       "Checklist Harian Toko",
       "Safety Walk Checklist",
       "Complaint Handling Log",
-      "NCR Draft Template"
+      "NCR Draft Template",
+      "Daily KPI Sheet"
     ],
     dependencies: ["isoRetailOrchestrator"]
   },
@@ -109,20 +190,24 @@ Buat dokumen & rekaman harian toko yang audit-friendly sesuai \`DOCUMENT_OUTPUT_
     name: "Retail Buyer Agent",
     role: "Retail Buyer",
     industry: "retail",
-    system_prompt: `Kamu adalah \`retailBuyerAgent\`. Fokus: supplier evaluation, PO control, incoming quality, supplier NCR.
+    system_prompt: `Kamu adalah Retail Buyer Agent. Fokus: buying & supplier.
 
-**Deliverable:**
-- SOP Supplier Evaluation & Selection
-- SOP Purchase Order Control
--Incoming Quality Check Template
-- Supplier NCR Form
+**Buat SOP & template:**
+- SOP PR/RFQ/PO + kontrol approval
+- Supplier evaluation & scorecard
+- Nonconforming supplier handling
+- Open-to-buy & seasonal plan template
 
-Wajib cantumkan: criteria evaluasi supplier, approval matrix, traceability ke produk.`,
+**GLOBAL PROMPT**: ${RETAIL_GLOBAL_SYSTEM_PROMPT}
+
+Output harus mengikuti DOCUMENT_OUTPUT_SCHEMA. Wajib: criteria evaluasi supplier, approval matrix, traceability.`,
     deliverables: [
-      "SOP Supplier Evaluation",
-      "SOP Purchase Order Control",
-      "Incoming Quality Check Template",
-      "Supplier NCR Form"
+      "SOP Purchase Requisition",
+      "SOP Supplier Evaluation & Selection",
+      "Supplier Scorecard Template",
+      "Nonconforming Supplier Handling SOP",
+      "Open-to-Buy Template",
+      "Seasonal Plan Template"
     ],
     dependencies: ["isoRetailOrchestrator"]
   },
@@ -131,18 +216,22 @@ Wajib cantumkan: criteria evaluasi supplier, approval matrix, traceability ke pr
     name: "Store Operations Manager Agent",
     role: "Store Operations Manager",
     industry: "retail",
-    system_prompt: `Kamu adalah \`storeOperationsManagerAgent\`. Fokus: standardisasi lintas toko, SOP core, training matrix, CAPA workflow operasional.
+    system_prompt: `Kamu adalah Store Operations Manager Agent. Fokus: standardisasi lintas toko.
 
-**Deliverable:**
-- SOP Core Operations (lintas toko)
-- Training Matrix Template
-- CAPA Workflow Operasional
-- Store Audit Checklist
+**Buat SOP & template:**
+- SOP receiving, replenishment, returns, cash handling
+- Training matrix + audit readiness per store
+- CAPA workflow operasional
+- Compliance dashboard spec
 
-Wajib: standardisasi yang applicable untuk semua toko, training dengan competency assessment.`,
+**GLOBAL PROMPT**: ${RETAIL_GLOBAL_SYSTEM_PROMPT}
+
+Output harus mengikuti DOCUMENT_OUTPUT_SCHEMA. Wajib: standardisasi applicable untuk semua toko.`,
     deliverables: [
-      "SOP Core Operations",
-      "Training Matrix",
+      "SOP Receiving & Replenishment",
+      "SOP Returns & Exchanges",
+      "SOP Cash Handling",
+      "Training Matrix Template",
       "CAPA Workflow Operasional",
       "Store Audit Checklist"
     ],
@@ -153,19 +242,21 @@ Wajib: standardisasi yang applicable untuk semua toko, training dengan competenc
     name: "Store Manager Agent",
     role: "Store Manager",
     industry: "retail",
-    system_prompt: `Kamu adalah \`storeManagerAgent\`. Fokus: leadership evidence (target, review, improvement plan, resource), store management review bulanan.
+    system_prompt: `Kamu adalah Store Manager Agent. Fokus: leadership toko.
 
-**Deliverable:**
-- SOP Store Leadership & Target Setting
-- Template Store Monthly Review
-- Store Improvement Plan Template
-- Resource Allocation Evidence
+**Buat SOP & template:**
+- Store management review bulanan (agenda, minutes)
+- Improvement plan backlog
+- Performance review template terkait KPI & kepatuhan
 
-Target harus SMART, review minutes sebagai evidence, improvement plan dengan KPI.`,
+**GLOBAL PROMPT**: ${RETAIL_GLOBAL_SYSTEM_PROMPT}
+
+Output harus mengikuti DOCUMENT_OUTPUT_SCHEMA. Target harus SMART, review minutes sebagai evidence.`,
     deliverables: [
       "SOP Store Leadership",
-      "Template Store Monthly Review",
+      "Store Monthly Review Template",
       "Store Improvement Plan",
+      "Performance Review Template",
       "Resource Allocation Evidence"
     ],
     dependencies: ["isoRetailOrchestrator"]
@@ -175,20 +266,22 @@ Target harus SMART, review minutes sebagai evidence, improvement plan dengan KPI
     name: "Department Manager Agent",
     role: "Department Manager",
     industry: "retail",
-    system_prompt: `Kamu adalah \`departmentManagerAgent\`. Fokus: kontrol departemen, pricing accuracy, shrink control, coaching log.
+    system_prompt: `Kamu adalah Department Manager Agent. Fokus: kontrol per departemen.
 
-**Deliverable:**
-- SOP Department Control
-- Pricing Accuracy Control Template
-- Shrink Control Checklist
-- Coaching Log Template
+**Buat SOP & template:**
+- Pricing/label accuracy checklist
+- Shrink control plan departemen
+- Daily issue log + tindakan
 
-Wajib: pricing deviation controls, shrink investigation procedure, coaching dengan evidence.`,
+**GLOBAL PROMPT**: ${RETAIL_GLOBAL_SYSTEM_PROMPT}
+
+Output harus mengikuti DOCUMENT_OUTPUT_SCHEMA. Wajib: pricing deviation controls, shrink investigation.`,
     deliverables: [
       "SOP Department Control",
-      "Pricing Accuracy Control",
-      "Shrink Control Checklist",
-      "Coaching Log"
+      "Pricing Accuracy Checklist",
+      "Shrink Control Plan",
+      "Daily Issue Log",
+      "Coaching Log Template"
     ],
     dependencies: ["isoRetailOrchestrator"]
   },
@@ -197,20 +290,22 @@ Wajib: pricing deviation controls, shrink investigation procedure, coaching deng
     name: "District/Regional Manager Agent",
     role: "District/Regional Manager",
     industry: "retail",
-    system_prompt: `Kamu adalah \`districtRegionalManagerAgent\`. Fokus: governance multi-store, cross-store audit, regional KPI pack, escalations.
+    system_prompt: `Kamu adalah District/Regional Manager Agent. Fokus: governance multi-store.
 
-**Deliverable:**
-- SOP Multi-Store Governance
-- Cross-Store Audit Program
-- Regional KPI Pack
-- Escalation & Resolution Log
+**Buat SOP & template:**
+- Cross-store audit program
+- Regional KPI pack + eskalasi
+- Risk register regional
 
-Wajib: regional standards, cross-store comparability, escalation SLA.`,
+**GLOBAL PROMPT**: ${RETAIL_GLOBAL_SYSTEM_PROMPT}
+
+Output harus mengikuti DOCUMENT_OUTPUT_SCHEMA. Wajib: regional standards, cross-store comparability.`,
     deliverables: [
       "SOP Multi-Store Governance",
       "Cross-Store Audit Program",
       "Regional KPI Pack",
-      "Escalation Log"
+      "Escalation & Resolution Log",
+      "Regional Risk Register"
     ],
     dependencies: ["isoRetailOrchestrator"]
   },
@@ -219,20 +314,24 @@ Wajib: regional standards, cross-store comparability, escalation SLA.`,
     name: "Inventory Specialist Agent",
     role: "Inventory Specialist",
     industry: "retail",
-    system_prompt: `Kamu adalah \`inventorySpecialistAgent\`. Fokus: receiving, putaway, cycle count, stock discrepancy RCA, transfer control.
+    system_prompt: `Kamu adalah Inventory Specialist Agent. Fokus: akurasi stok.
 
-**Deliverable:**
-- SOP Receiving & Putaway
-- SOP Cycle Count
-- Inventory Discrepancy Report Template
-- Transfer Control Form
+**Buat SOP & template:**
+- SOP receiving/putaway/transfer
+- Cycle count & stock opname SOP + toleransi
+- Discrepancy report + RCA kategori
+- Shrinkage report template
 
-Wajib: receiving evidence, count accuracy metrics, discrepancy RCA methodology.`,
+**GLOBAL PROMPT**: ${RETAIL_GLOBAL_SYSTEM_PROMPT}
+
+Output harus mengikuti DOCUMENT_OUTPUT_SCHEMA. Minimal 3 KPI: inventory accuracy, shrinkage rate, count compliance.`,
     deliverables: [
       "SOP Receiving & Putaway",
-      "SOP Cycle Count",
+      "SOP Cycle Count & Stock Opname",
       "Inventory Discrepancy Report",
-      "Transfer Control Form"
+      "Stock Transfer Form",
+      "Shrinkage Report Template",
+      "RCA Categories"
     ],
     dependencies: ["isoRetailOrchestrator"]
   },
@@ -241,20 +340,23 @@ Wajib: receiving evidence, count accuracy metrics, discrepancy RCA methodology.`
     name: "Visual Merchandiser Agent",
     role: "Visual Merchandiser",
     industry: "retail",
-    system_prompt: `Kamu adalah \`visualMerchandiserAgent\`. Fokus: VM guideline, planogram control, VM audit checklist, promo execution control.
+    system_prompt: `Kamu adalah Visual Merchandiser Agent. Fokus: VM & promosi.
 
-**Deliverable:**
-- VM Guidelines
-- Planogram Control SOP
-- VM Audit Checklist
-- Promo Execution Control
+**Buat SOP & template:**
+- VM guideline + planogram control
+- VM audit checklist + scoring
+- Kalender VM + promo execution checklist
 
-Wajib: planogram compliance metrics, promo execution verification, VM audit frequency.`,
+**GLOBAL PROMPT**: ${RETAIL_GLOBAL_SYSTEM_PROMPT}
+
+Output harus mengikuti DOCUMENT_OUTPUT_SCHEMA. Wajib: planogram compliance metrics, promo execution verification.`,
     deliverables: [
       "VM Guidelines",
       "Planogram Control SOP",
       "VM Audit Checklist",
-      "Promo Execution Control"
+      "VM Scoring Template",
+      "VM Calendar",
+      "Promo Execution Checklist"
     ],
     dependencies: ["isoRetailOrchestrator"]
   },
@@ -263,44 +365,24 @@ Wajib: planogram compliance metrics, promo execution verification, VM audit freq
     name: "Sales Associate Agent",
     role: "Sales Associate",
     industry: "retail",
-    system_prompt: `Kamu adalah \`salesAssociateAgent\`. Fokus: service standard, frontline compliance, safety checklist area sales, complaint resolution log, micro-training.
+    system_prompt: `Kamu adalah Sales Associate Agent. Fokus: frontline sales.
 
-**Deliverable:**
-- SOP Service Standard
-- Frontline Compliance Checklist
-- Safety Checklist Area Sales
-- Complaint Resolution Log
-- Micro-Training Log
+**Buat SOP & template:**
+- Service standard + product knowledge mini guide
+- Returns/exchange SOP ringkas (frontline)
+- Customer interaction record template
+- Safety checklist area penjualan
 
-Wajib: service standard compliance, safety awareness, complaint resolution SLA.`,
+**GLOBAL PROMPT**: ${RETAIL_GLOBAL_SYSTEM_PROMPT}
+
+Output harus mengikuti DOCUMENT_OUTPUT_SCHEMA. Wajib: service standard compliance, safety awareness.`,
     deliverables: [
       "SOP Service Standard",
-      "Frontline Compliance Checklist",
-      "Safety Checklist",
-      "Complaint Resolution Log",
+      "Product Knowledge Guide",
+      "Returns/Exchange SOP",
+      "Customer Interaction Record",
+      "Safety Checklist Sales Area",
       "Micro-Training Log"
-    ],
-    dependencies: ["isoRetailOrchestrator"]
-  },
-  {
-    id: "isoComplianceAuditAgent",
-    name: "ISO Compliance & Audit Agent",
-    role: "Compliance/Audit",
-    industry: "retail",
-    system_prompt: `Kamu adalah \`isoComplianceAuditAgent\`. Fokus: mapping klausul ISO → evidence, internal audit checklist, CAPA templates, control of documented information.
-
-**Deliverable:**
-- Clause–Evidence Matrix (ISO 9001 + standar lain jika ada)
-- Internal Audit Program Tahunan + Checklist per Proses
-- CAPA Log + Root Cause Template (5 Why/Fishbone)
-- SOP Kontrol Dokumen & Rekaman + Daftar Masa Simpan
-
-Semua output wajib mengikuti schema dan bisa di-audit.`,
-    deliverables: [
-      "Clause-Evidence Matrix",
-      "Internal Audit Program",
-      "CAPA Log + Root Cause Template",
-      "SOP Kontrol Dokumen"
     ],
     dependencies: ["isoRetailOrchestrator"]
   }
@@ -311,7 +393,7 @@ export const RETAIL_TASK_BRIEFS: TaskBrief[] = [
     task_id: "WP-ASM-001",
     assigned_agent: "assistantStoreManagerAgent",
     objective: "Membuat SOP & form operasional harian toko yang audit-friendly",
-    inputs_from_state: ["org_profile", "iso_scope", "doc_control", "process_map"],
+    inputs_from_state: ["org_profile", "iso_scope", "retail_process_map", "doc_control"],
     deliverables: [
       "SOP Opening/Closing Store",
       "Checklist Harian Toko",
@@ -320,50 +402,95 @@ export const RETAIL_TASK_BRIEFS: TaskBrief[] = [
     ],
     constraints: [
       "Gunakan DOCUMENT_OUTPUT_SCHEMA",
-      "Cantumkan minimal 3 KPI toko",
+      "Minimal 3 KPI toko",
       "Tambahkan risks_controls dan records_retention"
     ],
     acceptance_criteria: [
-      "Ada evidence untuk setiap langkah kritikal",
-      "Ada mapping iso_clauses minimal untuk ISO 9001"
+      "Evidence untuk setiap langkah kritikal",
+      "Ada mapping iso_clauses ISO 9001"
+    ]
+  },
+  {
+    task_id: "WP-BUYER-001",
+    assigned_agent: "retailBuyerAgent",
+    objective: "Membuat SOP buying & supplier management untuk retail",
+    inputs_from_state: ["org_profile", "iso_scope", "retail_process_map", "doc_control"],
+    deliverables: [
+      "SOP PR/RFQ/PO",
+      "Supplier Evaluation Scorecard",
+      "Nonconforming Supplier Handling",
+      "Open-to-Buy Template"
+    ],
+    constraints: [
+      "Gunakan DOCUMENT_OUTPUT_SCHEMA",
+      "Approval matrix dengan threshold",
+      "Minimal 3 KPI supplier"
+    ],
+    acceptance_criteria: [
+      "Traceability ke produk ada",
+      "Approval hierarchy jelas"
+    ]
+  },
+  {
+    task_id: "WP-OPS-001",
+    assigned_agent: "storeOperationsManagerAgent",
+    objective: "Membuat SOP standardisasi operasional lintas toko",
+    inputs_from_state: ["org_profile", "iso_scope", "retail_process_map", "doc_control"],
+    deliverables: [
+      "SOP Receiving & Returns",
+      "SOP Cash Handling",
+      "Training Matrix",
+      "CAPA Workflow"
+    ],
+    constraints: [
+      "Gunakan DOCUMENT_OUTPUT_SCHEMA",
+      "Standardisasi applicable semua toko",
+      "Training dengan competency assessment"
+    ],
+    acceptance_criteria: [
+      "Audit readiness terdokumentasi",
+      "Compliance dashboard ada"
     ]
   },
   {
     task_id: "WP-INV-001",
     assigned_agent: "inventorySpecialistAgent",
-    objective: "Membuat SOP & form inventory control untuk ISO retail",
-    inputs_from_state: ["org_profile", "iso_scope", "doc_control", "process_map"],
+    objective: "Membuat SOP + template inventory control audit-ready untuk retail",
+    inputs_from_state: ["org_profile", "iso_scope", "retail_process_map", "doc_control"],
     deliverables: [
       "SOP Receiving & Putaway",
-      "SOP Cycle Count",
-      "Inventory Discrepancy Report Template",
-      "Transfer Control Form"
+      "SOP Cycle Count & Stock Opname",
+      "Inventory Discrepancy Report + RCA",
+      "Stock Transfer Form + Log",
+      "Shrinkage Report Template"
     ],
     constraints: [
       "Gunakan DOCUMENT_OUTPUT_SCHEMA",
-      "Cantumkan minimal 3 KPI inventory",
-      "Tambahkan risks_controls dan records_retention"
+      "Minimal 8 control_point (receiving check, labeling, access stockroom, tolerance, recount, approval adjustment, transfer verification, segregation of duties)",
+      "Cantumkan minimal 3 KPI (inventory accuracy, shrinkage rate, count compliance)"
     ],
     acceptance_criteria: [
-      "Ada evidence untuk setiap langkah kritikal",
-      "Ada mapping iso_clauses minimal untuk ISO 9001"
+      "Evidence bisa ditarik dari WMS/ERP/log",
+      "Ada retention & akses record",
+      "Bahasa operasional untuk toko"
     ]
   },
   {
     task_id: "WP-VM-001",
     assigned_agent: "visualMerchandiserAgent",
     objective: "Membuat VM guidelines dan kontrol untuk retail",
-    inputs_from_state: ["org_profile", "iso_scope", "doc_control", "process_map"],
+    inputs_from_state: ["org_profile", "iso_scope", "retail_process_map", "doc_control"],
     deliverables: [
       "VM Guidelines",
       "Planogram Control SOP",
       "VM Audit Checklist",
-      "Promo Execution Control"
+      "VM Calendar",
+      "Promo Execution Checklist"
     ],
     constraints: [
       "Gunakan DOCUMENT_OUTPUT_SCHEMA",
-      "Sertakan compliance metrics",
-      "Tambahkan audit frequency"
+      "Compliance metrics terukur",
+      "Audit frequency terdokumentasi"
     ],
     acceptance_criteria: [
       "Planogram compliance terukur",
@@ -371,31 +498,160 @@ export const RETAIL_TASK_BRIEFS: TaskBrief[] = [
     ]
   },
   {
-    task_id: "WP-COMP-001",
-    assigned_agent: "isoComplianceAuditAgent",
-    objective: "Membuat perangkat compliance ISO untuk retail",
-    inputs_from_state: ["org_profile", "iso_scope", "doc_control", "process_map"],
+    task_id: "WP-SALES-001",
+    assigned_agent: "salesAssociateAgent",
+    objective: "Membuat SOP frontline sales dan service standard",
+    inputs_from_state: ["org_profile", "iso_scope", "retail_process_map", "doc_control"],
     deliverables: [
-      "Clause-Evidence Matrix",
-      "Internal Audit Program",
-      "CAPA Log Template",
-      "SOP Kontrol Dokumen"
+      "SOP Service Standard",
+      "Product Knowledge Guide",
+      "Returns/Exchange SOP",
+      "Safety Checklist"
     ],
     constraints: [
       "Gunakan DOCUMENT_OUTPUT_SCHEMA",
-      "Semua output harus audit-ready",
-      "Sertakan retention periods"
+      "Service compliance terukur",
+      "Safety awareness terdokumentasi"
     ],
     acceptance_criteria: [
-      "Setiap klausul ISO 9001 punya evidence",
-      "CAPA template lengkap dengan root cause"
+      "Customer interaction record ada",
+      "Micro-training terdokumentasi"
     ]
+  },
+  {
+    task_id: "WP-DEPT-001",
+    assigned_agent: "departmentManagerAgent",
+    objective: "Membuat SOP kontrol departemen",
+    inputs_from_state: ["org_profile", "iso_scope", "retail_process_map", "doc_control"],
+    deliverables: [
+      "SOP Department Control",
+      "Pricing Accuracy Checklist",
+      "Shrink Control Plan",
+      "Daily Issue Log"
+    ],
+    constraints: [
+      "Gunakan DOCUMENT_OUTPUT_SCHEMA",
+      "Pricing deviation controls",
+      "Shrink investigation procedure"
+    ],
+    acceptance_criteria: [
+      "Coaching evidence terdokumentasi",
+      "Issue tracking ada"
+    ]
+  },
+  {
+    task_id: "WP-REGION-001",
+    assigned_agent: "districtRegionalManagerAgent",
+    objective: "Membuat SOP governance multi-store",
+    inputs_from_state: ["org_profile", "iso_scope", "retail_process_map", "doc_control"],
+    deliverables: [
+      "Cross-Store Audit Program",
+      "Regional KPI Pack",
+      "Escalation Log",
+      "Regional Risk Register"
+    ],
+    constraints: [
+      "Gunakan DOCUMENT_OUTPUT_SCHEMA",
+      "Cross-store comparability",
+      "Regional standards terdokumentasi"
+    ],
+    acceptance_criteria: [
+      "Escalation SLA jelas",
+      "Risk register lengkap"
+    ]
+  },
+  {
+    task_id: "WP-MGR-001",
+    assigned_agent: "storeManagerAgent",
+    objective: "Membuat SOP store leadership dan management review",
+    inputs_from_state: ["org_profile", "iso_scope", "retail_process_map", "doc_control"],
+    deliverables: [
+      "Store Management Review Template",
+      "Improvement Plan",
+      "Performance Review Template",
+      "Resource Allocation Evidence"
+    ],
+    constraints: [
+      "Gunakan DOCUMENT_OUTPUT_SCHEMA",
+      "Target SMART",
+      "Minutes sebagai evidence"
+    ],
+    acceptance_criteria: [
+      "Review terdokumentasi",
+      "Action tracking ada"
+    ]
+  }
+];
+
+export const RETAIL_EXECUTION_FLOW = [
+  {
+    step: 1,
+    name: "Discovery",
+    description: "Isi org_profile + pilih ISO standards + sistem POS/ERP/WMS",
+    orchestrator_action: "Kumpulkan informasi organisasi, sistem retail, dan scope"
+  },
+  {
+    step: 2,
+    name: "Design",
+    description: "Process map retail + RACI + doc coding + doc register awal",
+    orchestrator_action: "Susun retail_process_map dan doc_control.doc_register"
+  },
+  {
+    step: 3,
+    name: "Build",
+    description: "Dispatch 9 work packages ke specialist agents",
+    orchestrator_action: "Kirim task brief ke semua specialist"
+  },
+  {
+    step: 4,
+    name: "Integrate",
+    description: "Buat lintas-proses: control of documents, risk register, audit program, CAPA, MR",
+    orchestrator_action: "Merge output specialist jadi framework lengkap"
+  },
+  {
+    step: 5,
+    name: "Validation",
+    description: "Cek gap evidence, gap shrinkage controls, gap returns/complaint, gap training",
+    orchestrator_action: "Review completeness dan quality gates"
+  },
+  {
+    step: 6,
+    name: "Packaging",
+    description: "Doc register final RET-... + bundle SOP/checklist/log siap pakai",
+    orchestrator_action: "Deliver final package"
+  }
+];
+
+export const RETAIL_QUALITY_GATES = [
+  {
+    gate: 1,
+    requirement: "Ada kontrol dokumen/rekaman"
+  },
+  {
+    gate: 2,
+    requirement: "Ada risk register (shrinkage, cash handling, supplier quality, safety)"
+  },
+  {
+    gate: 3,
+    requirement: "Ada audit internal + CAPA + management review"
+  },
+  {
+    gate: 4,
+    requirement: "Semua proses toko punya checklist/log sebagai evidence"
   }
 ];
 
 export function getRetailAgentById(id: string): AgentSpec | undefined {
   if (id === "isoRetailOrchestrator") return RETAIL_ORCHESTRATOR;
-  return RETAIL_SPECIALISTS.find(agent => agent.id === id);
+  return RETAIL_SPECIALISTS.find(a => a.id === id);
+}
+
+export function getRetailTaskBriefById(taskId: string): TaskBrief | undefined {
+  return RETAIL_TASK_BRIEFS.find(t => t.task_id === taskId);
+}
+
+export function getRetailSpecialistByRole(role: string): AgentSpec | undefined {
+  return RETAIL_SPECIALISTS.find(a => a.role.toLowerCase() === role.toLowerCase());
 }
 
 export function getAllRetailAgents(): AgentSpec[] {
