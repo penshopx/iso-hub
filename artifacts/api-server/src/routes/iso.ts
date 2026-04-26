@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { isoDocuments, hazards, incidents } from "@workspace/db";
+import { isoDocuments, hazards, incidents, facilitators, services, trainingPrograms } from "@workspace/db";
 
 const router = Router();
 
@@ -75,6 +75,51 @@ router.post("/iso/incidents", async (req, res) => {
     res.status(201).json(incident);
   } catch (error) {
     res.status(500).json({ error: "Failed to create incident" });
+  }
+});
+
+router.get("/iso/facilitators", async (req, res) => {
+  try {
+    const data = await db.select().from(facilitators).limit(50);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch facilitators" });
+  }
+});
+
+router.post("/iso/facilitators", async (req, res) => {
+  try {
+    const body = req.body;
+    const [facilitator] = await db.insert(facilitators).values({
+      name: body.name,
+      expertise: body.expertise,
+      company: body.company,
+      location: body.location,
+      bio: body.bio,
+      certifications: body.certifications,
+      status: "active",
+    }).returning();
+    res.status(201).json(facilitator);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to create facilitator" });
+  }
+});
+
+router.get("/iso/services", async (req, res) => {
+  try {
+    const data = await db.select().from(services).limit(50);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch services" });
+  }
+});
+
+router.get("/iso/training", async (req, res) => {
+  try {
+    const data = await db.select().from(trainingPrograms).limit(50);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch training programs" });
   }
 });
 

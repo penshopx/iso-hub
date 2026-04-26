@@ -26,7 +26,7 @@ export default function FasilitatorPage() {
   const [facilitatorsList, setFacilitatorsList] = useState([]);
 
   useEffect(() => {
-    fetch('/api/certifications')
+    fetch('/api/iso/facilitators')
       .then(r => r.json())
       .then(d => { if (Array.isArray(d)) setFacilitatorsList(d); })
       .catch(() => {});
@@ -113,7 +113,7 @@ export default function FasilitatorPage() {
             </div>
           ) : (
             facilitatorsList.map((facilitator) => {
-              const certs = facilitator.isoCertifications ? facilitator.isoCertifications.split(",") : [];
+              const certs = facilitator.certifications ? facilitator.certifications.split(",") : [];
               
               return (
                 <div key={facilitator.id} className="bg-neutral-800 rounded-lg border border-neutral-700 overflow-hidden hover:border-neutral-600 transition-colors">

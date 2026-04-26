@@ -6,6 +6,20 @@ import { Link } from "wouter";
 export default function Iso45001Page() {
   const [data, setData] = useState({ documents: 0, hazards: 0, incidents: 0 });
 
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/iso/documents').then(r => r.json()).catch(() => []),
+      fetch('/api/iso/hazards').then(r => r.json()).catch(() => []),
+      fetch('/api/iso/incidents').then(r => r.json()).catch(() => []),
+    ]).then(([docs, hazards, incidents]) => {
+      setData({
+        documents: Array.isArray(docs) ? docs.length : 0,
+        hazards: Array.isArray(hazards) ? hazards.length : 0,
+        incidents: Array.isArray(incidents) ? incidents.length : 0,
+      });
+    });
+  }, []);
+
 
   return (
     <main className="min-h-screen bg-neutral-900 text-white">

@@ -6,6 +6,19 @@ import { Link } from "wouter";
 export default function Iso14001Page() {
   const [data, setData] = useState({ documents: 0, aspects: 0, monitoring: 0 });
 
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/iso/documents').then(r => r.json()).catch(() => []),
+      fetch('/api/iso/hazards').then(r => r.json()).catch(() => []),
+    ]).then(([docs, hazards]) => {
+      setData({
+        documents: Array.isArray(docs) ? docs.length : 0,
+        aspects: Array.isArray(hazards) ? hazards.length : 0,
+        monitoring: Array.isArray(docs) ? docs.filter(d => d.status === 'approved').length : 0,
+      });
+    });
+  }, []);
+
 
   return (
     <main className="min-h-screen bg-neutral-900 text-white">
