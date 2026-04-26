@@ -4,6 +4,8 @@ import { Link } from "wouter";
 
 
 export default function PelatihanPage() {
+  const [data, setData] = useState({ programs: 0, participants: 0, certificates: 0 });
+
 
   return (
     <main className="min-h-screen bg-neutral-900 text-white">

@@ -4,6 +4,8 @@ import { Link } from "wouter";
 
 
 export default function Iso14001Page() {
+  const [data, setData] = useState({ documents: 0, aspects: 0, monitoring: 0 });
+
 
   return (
     <main className="min-h-screen bg-neutral-900 text-white">

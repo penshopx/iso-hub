@@ -45,6 +45,7 @@ function Router() {
         <Route path="/insiden" component={InsidenPage} />
         <Route path="/vendor" component={VendorPage} />
         <Route path="/fasilitator" component={FasilitatorPage} />
+        <Route path="/fasilitator/:id" component={FasilitatorPage} />
         <Route path="/sertifikasi-badan" component={SertifikasiBadanPage} />
         <Route path="/perpustakaan" component={PerpustakaanPage} />
         <Route path="/layanan" component={LayananPage} />

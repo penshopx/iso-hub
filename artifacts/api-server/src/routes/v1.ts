@@ -185,7 +185,8 @@ router.post("/v1/chat", async (req, res) => {
       reply = "Halo! Selamat datang di ISO Hub AI Assistant. Saya siap membantu Anda dengan informasi tentang standar ISO, implementasi, audit, dan sertifikasi. Apa yang ingin Anda ketahui?";
     }
 
-    res.json({ success: true, reply, message });
+    const actions = lowerMsg.includes("sertifikasi") ? ["Info ISO", "Panduan", "Booking"] : ["Info ISO", "Buat Dokumen", "Panduan", "Booking"];
+    res.json({ success: true, data: { response: reply, actions, intent: "general", taskData: null } });
   } catch (error) {
     res.status(500).json({ success: false, error: "Failed to process chat" });
   }
