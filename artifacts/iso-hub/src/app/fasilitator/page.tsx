@@ -159,19 +159,7 @@ export default function FasilitatorPage() {
                       </Link>
                     </div>
                   </div>
-                  
-                  {servs.length > 0 && (
-                    <div className="px-6 py-3 bg-neutral-750 border-t border-neutral-700">
-                      <p className="text-xs text-neutral-500 mb-2">Layanan:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {servs.slice(0, 3).map((s) => (
-                          <span key={s.id} className="text-xs px-2 py-1 bg-neutral-700 rounded">
-                            {s.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                
                 </div>
               );
             })
