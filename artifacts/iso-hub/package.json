@@ -74,9 +74,5 @@
     "wouter": "^3.3.5",
     "zod": "catalog:"
   },
-  "dependencies": {
-    "@libsql/client": "^0.17.3",
-    "drizzle-orm": "catalog:",
-    "next": "^16.2.4"
-  }
+  "dependencies": {}
 }
