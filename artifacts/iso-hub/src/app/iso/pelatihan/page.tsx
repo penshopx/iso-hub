@@ -6,6 +6,20 @@ import { Link } from "wouter";
 export default function PelatihanPage() {
   const [data, setData] = useState({ programs: 0, participants: 0, certificates: 0 });
 
+  useEffect(() => {
+    fetch('/api/iso/training').then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d)) {
+          setData({
+            programs: d.length,
+            participants: d.reduce((sum, p) => sum + (p.maxParticipants || 0), 0),
+            certificates: d.filter(p => p.status === 'completed').length,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
 
   return (
     <main className="min-h-screen bg-neutral-900 text-white">

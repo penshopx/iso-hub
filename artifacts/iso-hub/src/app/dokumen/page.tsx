@@ -98,8 +98,8 @@ export default function DokumenPage() {
                     <td className="px-6 py-4 text-neutral-400">{doc.isoStandard || "-"}</td>
                     <td className="px-6 py-4 text-neutral-400">v{doc.version}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(doc.workflowStage)} text-white`}>
-                        {stageLabels[doc.workflowStage || "draft"]}
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(doc.status)} text-white`}>
+                        {stageLabels[doc.status || "draft"]}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-neutral-400 text-sm">
@@ -149,15 +149,15 @@ export default function DokumenPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-neutral-400">Draft</span>
-                <span className="font-medium">{documents.filter(d => d.workflowStage === "draft").length}</span>
+                <span className="font-medium">{documents.filter(d => d.status === "draft").length}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-neutral-400">Dalam Review</span>
-                <span className="font-medium">{documents.filter(d => d.workflowStage === "review").length}</span>
+                <span className="font-medium">{documents.filter(d => d.status === "review").length}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-neutral-400">Disetujui</span>
-                <span className="font-medium">{documents.filter(d => d.workflowStage === "approved").length}</span>
+                <span className="font-medium">{documents.filter(d => d.status === "approved").length}</span>
               </div>
             </div>
           </div>
