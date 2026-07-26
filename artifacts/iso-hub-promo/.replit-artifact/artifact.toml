@@ -1,0 +1,27 @@
+kind = "video"
+previewPath = "/iso-hub-promo/"
+title = "ISO Hub Promo Video"
+version = "1.0.0"
+id = "artifacts/iso-hub-promo"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/iso-hub-promo/" ]
+localPort = 22350
+
+[services.development]
+run = "pnpm --filter @workspace/iso-hub-promo run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/iso-hub-promo", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/iso-hub-promo/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22350"
+BASE_PATH = "/iso-hub-promo/"

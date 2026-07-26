@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "zjq-dcdCZR_MpjIchIKHK"
+uri = "file://artifacts/iso-hub-promo/public/audio/bg_music.mp3"
+type = "audio"
+title = "ISO Hub promo background music"
