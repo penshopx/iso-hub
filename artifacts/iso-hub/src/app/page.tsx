@@ -239,6 +239,49 @@ export default function Home() {
       </section>
 
       {/* ══════════════════════════════════════
+          D — DESIRE: Video Demo
+      ══════════════════════════════════════ */}
+      <section className="py-20 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <p className="text-orange-400 text-sm font-semibold uppercase tracking-widest mb-3">Lihat Langsung</p>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              ISO Hub dalam{" "}
+              <span className="bg-gradient-to-r from-orange-400 to-pink-400 bg-clip-text text-transparent">
+                60 detik
+              </span>
+            </h2>
+            <p className="text-neutral-400 text-base max-w-xl mx-auto">
+              Dari dashboard AI hingga manajemen audit — semua yang bisa Anda lakukan di platform kami.
+            </p>
+          </div>
+
+          {/* video embed */}
+          <div className="relative rounded-2xl overflow-hidden border border-neutral-700/50 shadow-2xl shadow-black/50 bg-neutral-900">
+            {/* decorative top bar */}
+            <div className="flex items-center gap-1.5 px-4 py-3 bg-neutral-800/80 border-b border-neutral-700/50">
+              <span className="w-3 h-3 rounded-full bg-red-500/70" />
+              <span className="w-3 h-3 rounded-full bg-yellow-500/70" />
+              <span className="w-3 h-3 rounded-full bg-green-500/70" />
+              <span className="ml-3 text-xs text-neutral-500 font-medium">ISO Hub — Platform Showcase</span>
+            </div>
+            <div className="aspect-video w-full">
+              <iframe
+                src="/iso-hub-promo/"
+                className="w-full h-full border-0"
+                title="ISO Hub Promo Video"
+                allow="autoplay"
+              />
+            </div>
+          </div>
+
+          <p className="text-center text-xs text-neutral-600 mt-4">
+            Video animasi — tidak perlu suara untuk memahami fitur utama
+          </p>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════
           D — DESIRE: Features + Social Proof
       ══════════════════════════════════════ */}
 
