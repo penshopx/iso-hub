@@ -1,0 +1,27 @@
+kind = "slides"
+previewPath = "/iso-hub-pitch/"
+title = "ISO Hub Pitch Deck"
+version = "1.0.0"
+id = "artifacts/iso-hub-pitch"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/iso-hub-pitch/" ]
+localPort = 24647
+
+[services.development]
+run = "pnpm --filter @workspace/iso-hub-pitch run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/iso-hub-pitch", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/iso-hub-pitch/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24647"
+BASE_PATH = "/iso-hub-pitch/"

@@ -1,0 +1,82 @@
+[
+  {
+    "id": "a1b20001-0001-0001-0001-000000000001",
+    "position": 1,
+    "filepath": "src/pages/slides/Slide01Cover.tsx",
+    "title": "ISO Hub — Cover",
+    "description": "Title slide introducing ISO Hub as Indonesia's leading ISO compliance platform.",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b20002-0002-0002-0002-000000000002",
+    "position": 2,
+    "filepath": "src/pages/slides/Slide02Problem.tsx",
+    "title": "The Problem",
+    "description": "Three core pain points companies face with ISO certification today.",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b20003-0003-0003-0003-000000000003",
+    "position": 3,
+    "filepath": "src/pages/slides/Slide03Solution.tsx",
+    "title": "The Solution",
+    "description": "ISO Hub's three-pillar platform approach: AI, verified consultants, and management tools.",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b20004-0004-0004-0004-000000000004",
+    "position": 4,
+    "filepath": "src/pages/slides/Slide04AIAgents.tsx",
+    "title": "AI Agents",
+    "description": "Five specialist AI agents covering every aspect of ISO certification.",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b20005-0005-0005-0005-000000000005",
+    "position": 5,
+    "filepath": "src/pages/slides/Slide05RiskAudit.tsx",
+    "title": "Risk Management & Audit",
+    "description": "Integrated risk management and audit tracking capabilities.",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b20006-0006-0006-0006-000000000006",
+    "position": 6,
+    "filepath": "src/pages/slides/Slide06OPCClaw.tsx",
+    "title": "OPC CLAW Orchestration",
+    "description": "Multi-agent orchestration system for parallel ISO task execution.",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b20007-0007-0007-0007-000000000007",
+    "position": 7,
+    "filepath": "src/pages/slides/Slide07Standards.tsx",
+    "title": "Supported Standards",
+    "description": "Nine-plus ISO standards supported on one unified platform.",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b20008-0008-0008-0008-000000000008",
+    "position": 8,
+    "filepath": "src/pages/slides/Slide08Traction.tsx",
+    "title": "Platform at a Glance",
+    "description": "Key platform metrics and traction indicators.",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b20009-0009-0009-0009-000000000009",
+    "position": 9,
+    "filepath": "src/pages/slides/Slide09Market.tsx",
+    "title": "Market Opportunity",
+    "description": "Indonesia's ISO certification market size and key growth drivers.",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b20010-0010-0010-0010-000000000010",
+    "position": 10,
+    "filepath": "src/pages/slides/Slide10CTA.tsx",
+    "title": "Get Started with ISO Hub",
+    "description": "Closing call to action and next steps for prospects and investors.",
+    "speakerNotes": ""
+  }
+]
