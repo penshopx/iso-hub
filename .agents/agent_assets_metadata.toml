@@ -13,3 +13,10 @@ uri = "file://artifacts/iso-hub-promo/public/audio/voiceover_id.mp3"
 type = "audio"
 title = "Voiceover ISO Hub — Bahasa Indonesia"
 description = "Narasi Bahasa Indonesia berdurasi sekitar 35 detik untuk promo ISO Hub."
+
+[[outputs]]
+id = "gJhGXEIbQvcOpc22hwgY5"
+uri = "file://.local/outputs/ISO-Hub-Pitch-Deck.pptx"
+type = "slides"
+title = "ISO Hub Pitch Deck (PPTX)"
+description = "PowerPoint pitch deck ISO Hub dengan 10 slide dan presenter talking points."
