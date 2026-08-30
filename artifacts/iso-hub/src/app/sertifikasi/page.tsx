@@ -10,6 +10,7 @@ const stageColors: Record<string, string> = {
   implementation: "bg-blue-500",
   internal_audit: "bg-purple-500",
   certification: "bg-green-500",
+  continual_improvement: "bg-cyan-500",
 };
 
 const stageLabels: Record<string, string> = {
@@ -17,15 +18,24 @@ const stageLabels: Record<string, string> = {
   implementation: "Implementasi",
   internal_audit: "Audit Internal",
   certification: "Sertifikasi",
+  continual_improvement: "Perbaikan Berkelanjutan",
 };
 
-const complianceLevels: Record<string, number> = {
-  "not_applicable": 0,
-  "non_compliant": 1,
-  "partially_compliant": 2,
-  "compliant": 3,
-  "fully_compliant": 4,
+type Certification = {
+  id: number;
+  standard: string;
+  certificationBody: string | null;
+  certificateNumber: string | null;
+  status: string | null;
 };
+
+const CERTIFICATION_STAGES = [
+  { label: "Gap Analysis", href: "/kesiapan-proyek", color: "bg-yellow-500" },
+  { label: "Implementasi", href: "/dokumen", color: "bg-blue-500" },
+  { label: "Audit Internal", href: "/audit", color: "bg-purple-500" },
+  { label: "Keputusan Eksternal", href: "/sertifikasi-badan", color: "bg-green-500" },
+  { label: "Perbaikan Berkelanjutan", href: "/perubahan", color: "bg-cyan-500" },
+];
 
 function getStageColor(stage: string | null): string {
   return stageColors[stage || "gap_analysis"] || "bg-yellow-500";
@@ -36,7 +46,7 @@ function getStageLabel(stage: string | null): string {
 }
 
 export default function SertifikasiPage() {
-  const [roadmaps, setRoadmaps] = useState([]);
+  const [roadmaps, setRoadmaps] = useState<Certification[]>([]);
 
   useEffect(() => {
     fetch('/api/certifications')
@@ -72,16 +82,23 @@ export default function SertifikasiPage() {
       <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="mb-8">
           <h2 className="text-lg font-semibold mb-4">Tahapan Sertifikasi ISO</h2>
-          <div className="flex items-center justify-between">
-            {["Gap Analysis", "Implementasi", "Audit Internal", "Sertifikasi"].map((stage, index) => (
-              <div key={stage} className="flex items-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${index === 0 ? "bg-yellow-500" : index === 1 ? "bg-blue-500" : index === 2 ? "bg-purple-500" : "bg-green-500"}`}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {CERTIFICATION_STAGES.map((stage, index) => (
+              <Link
+                key={stage.label}
+                href={stage.href}
+                className="p-4 rounded-lg border border-neutral-700 bg-neutral-800 hover:border-neutral-500 transition-colors"
+                data-testid={`link-certification-stage-${index + 1}`}
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${stage.color}`}>
                   <span className="font-bold">{index + 1}</span>
                 </div>
-                <span className="ml-2 text-sm hidden md:inline">{stage}</span>
-                {index < 3 && <div className="w-12 md:w-24 h-1 bg-neutral-700 mx-2"></div>}
-              </div>
+                <span className="mt-3 block text-sm font-medium">{stage.label}</span>
+              </Link>
             ))}
+          </div>
+          <div className="mt-4 p-4 rounded-lg border border-blue-500/30 bg-blue-500/10 text-sm text-blue-100" data-testid="certification-boundary-note">
+            ISO Hub membantu menyiapkan dokumen, implementasi, audit internal, dan tindak lanjut. Audit serta keputusan penerbitan sertifikat dilakukan oleh badan sertifikasi atau instansi berwenang yang independen—bukan oleh ISO Hub maupun Gustafta.
           </div>
         </div>
 
@@ -97,38 +114,22 @@ export default function SertifikasiPage() {
               ) : (
                 <div className="space-y-4">
                   {roadmaps.map((roadmap) => {
-
-                    const totalCompliance = gaps.reduce((sum, g) => sum + (complianceLevels[g.complianceLevel || "non_compliant"] || 0), 0);
-                    const maxCompliance = gaps.length * 4;
-                    const compliancePercent = maxCompliance > 0 ? Math.round((totalCompliance / maxCompliance) * 100) : 0;
-                    
                     return (
                       <div key={roadmap.id} className="p-4 bg-neutral-700 rounded-lg">
                         <div className="flex justify-between items-start mb-3">
                           <div>
-                            <h4 className="font-medium">{roadmap.clientName}</h4>
-                            <p className="text-sm text-neutral-400">{roadmap.isoStandard}</p>
+                            <h4 className="font-medium">{roadmap.standard}</h4>
+                            <p className="text-sm text-neutral-400">
+                              {roadmap.certificationBody || "Badan sertifikasi belum dipilih"}
+                            </p>
                           </div>
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${getStageColor(roadmap.currentStage)} text-white`}>
-                            {getStageLabel(roadmap.currentStage)}
+                          <span className="px-2 py-1 rounded text-xs font-medium bg-neutral-600 text-white">
+                            {roadmap.status || "active"}
                           </span>
                         </div>
-                        <div className="mb-2">
-                          <div className="flex justify-between text-xs mb-1">
-                            <span className="text-neutral-400">Kesesuaian</span>
-                            <span>{compliancePercent}%</span>
-                          </div>
-                          <div className="h-2 bg-neutral-600 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-green-500 rounded-full" 
-                              style={{ width: `${compliancePercent}%` }}
-                            />
-                          </div>
-                        </div>
-                        <div className="flex justify-between text-xs text-neutral-400">
-                          <span>{gaps.length} Klausul</span>
-                          <span>{readyItems.filter(i => i.status === "completed").length}/{readyItems.length} Checklist</span>
-                        </div>
+                        <p className="text-xs text-neutral-400">
+                          Nomor sertifikat: {roadmap.certificateNumber || "Belum diterbitkan pihak eksternal"}
+                        </p>
                       </div>
                     );
                   })}

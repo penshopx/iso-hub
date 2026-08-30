@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { INDUSTRIES, type IndustryType } from "@/lib/industries";
+import { INDUSTRIES } from "@/lib/industries";
 
 const colorClasses: Record<string, string> = {
   blue: "bg-blue-500",
@@ -56,16 +56,16 @@ export default function IndustriesPage() {
             <Link href="/kesiapan-proyek" className="px-4 py-2 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors" data-testid="link-construction-readiness">
               Cek Kesiapan Proyek Konstruksi
             </Link>
-            <Link href="#manufacturing" className="px-4 py-2 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors">
+            <Link href="/industri#manufacturing" className="px-4 py-2 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors">
               Manufaktur
             </Link>
-            <Link href="#food" className="px-4 py-2 bg-white/20 text-white font-semibold rounded-lg hover:bg-white/30 transition-colors">
+            <Link href="/industri#food" className="px-4 py-2 bg-white/20 text-white font-semibold rounded-lg hover:bg-white/30 transition-colors">
               Pangan
             </Link>
-            <Link href="#energy" className="px-4 py-2 bg-white/20 text-white font-semibold rounded-lg hover:bg-white/30 transition-colors">
+            <Link href="/industri#energy" className="px-4 py-2 bg-white/20 text-white font-semibold rounded-lg hover:bg-white/30 transition-colors">
               Energi
             </Link>
-            <Link href="#it" className="px-4 py-2 bg-white/20 text-white font-semibold rounded-lg hover:bg-white/30 transition-colors">
+            <Link href="/industri#it" className="px-4 py-2 bg-white/20 text-white font-semibold rounded-lg hover:bg-white/30 transition-colors">
               IT & Telekomunikasi
             </Link>
           </div>
@@ -111,6 +111,19 @@ export default function IndustriesPage() {
                     )}
                   </div>
                 </div>
+
+                {industry.id === "construction" && (
+                  <div className="mb-4 p-3 rounded-lg border border-orange-500/20 bg-orange-500/5" data-testid="construction-key-processes">
+                    <h4 className="text-xs font-medium text-orange-300 uppercase mb-2">Proses Kunci Konstruksi:</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {industry.keyProcesses.map((process) => (
+                        <span key={process} className="px-2 py-1 rounded bg-neutral-900 text-xs text-neutral-300">
+                          {process}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <Link 
                   href={`/industri#${industry.id}`}
@@ -192,17 +205,17 @@ export default function IndustriesPage() {
           <div className="p-6 bg-blue-900/30 border border-blue-500/30 rounded-lg">
             <h3 className="font-semibold mb-2">🔧 Manufaktur & Otomotif</h3>
             <p className="text-sm text-neutral-400 mb-4">IATF 16949, ISO 9001, ISO 14001, ISO 45001</p>
-            <Link href="/industri/manufacturing" className="text-blue-400 hover:underline text-sm">Lihat detail →</Link>
+            <Link href="/industri#manufacturing" className="text-blue-400 hover:underline text-sm">Lihat detail →</Link>
           </div>
           <div className="p-6 bg-green-900/30 border border-green-500/30 rounded-lg">
             <h3 className="font-semibold mb-2">🍔 Pangan & Minuman</h3>
             <p className="text-sm text-neutral-400 mb-4">ISO 22000, FSSC 22000, HACCP, HALAL</p>
-            <Link href="/industri/food" className="text-green-400 hover:underline text-sm">Lihat detail →</Link>
+            <Link href="/industri#food" className="text-green-400 hover:underline text-sm">Lihat detail →</Link>
           </div>
           <div className="p-6 bg-yellow-900/30 border border-yellow-500/30 rounded-lg">
             <h3 className="font-semibold mb-2">⚡ Energi & Utilities</h3>
             <p className="text-sm text-neutral-400 mb-4">ISO 50001, ISO 9001, ISO 14001</p>
-            <Link href="/industri/energy" className="text-yellow-400 hover:underline text-sm">Lihat detail →</Link>
+            <Link href="/industri#energy" className="text-yellow-400 hover:underline text-sm">Lihat detail →</Link>
           </div>
         </div>
       </div>

@@ -14,7 +14,10 @@ import {
   FolderOpen,
   PieChart,
   BookOpen,
-  Building2
+  Building2,
+  Users,
+  ArrowRight,
+  RefreshCw
 } from "lucide-react";
 
 type NeedType = "tender" | "proyek" | "audit";
@@ -52,6 +55,51 @@ const STANDARDS = [
 ];
 
 const ALL_NEEDS: NeedType[] = ["tender", "proyek", "audit"];
+
+const MODULE_LABELS: Record<string, string> = {
+  "/audit": "Audit",
+  "/dokumen": "Dokumen",
+  "/insiden": "Insiden",
+  "/kpi": "KPI",
+  "/layanan": "Layanan",
+  "/perpustakaan": "Regulasi",
+  "/proyek": "Proyek",
+  "/risiko": "Risiko",
+};
+
+const MANAGEMENT_FLOW = [
+  {
+    title: "Kesiapan",
+    description: "Nilai konteks, standar, dan gap awal.",
+    links: [
+      { href: "/kesiapan-proyek", label: "Penilaian" },
+      { href: "/proyek", label: "Proyek" },
+    ],
+  },
+  {
+    title: "Implementasi",
+    description: "Kelola bukti, kontrol, dan pihak terkait.",
+    links: [
+      { href: "/dokumen", label: "Dokumen" },
+      { href: "/vendor", label: "Vendor" },
+    ],
+  },
+  {
+    title: "Audit",
+    description: "Uji penerapan dan tindak lanjuti temuan.",
+    links: [
+      { href: "/audit", label: "Audit & CAPA" },
+    ],
+  },
+  {
+    title: "Perbaikan berkelanjutan",
+    description: "Pantau kinerja dan kelola perubahan.",
+    links: [
+      { href: "/kpi", label: "KPI" },
+      { href: "/perubahan", label: "Perubahan" },
+    ],
+  },
+];
 
 const CHECKLIST_DB: ChecklistItem[] = [
   { id: "c1", standardId: "iso9001", label: "Manual Mutu & Kebijakan Mutu telah tersedia dan disahkan manajemen puncak", module: "/dokumen", needTypes: ALL_NEEDS },
@@ -129,6 +177,40 @@ export default function KesiapanProyekPage() {
 
       <div className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 xl:grid-cols-12 gap-8">
         <div className="xl:col-span-8 space-y-8">
+          <section className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6" data-testid="section-management-flow">
+            <div className="flex items-center gap-2 mb-5">
+              <RefreshCw className="w-4 h-4 text-blue-400" />
+              <h2 className="text-base font-medium text-white">Alur Sistem Manajemen</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              {MANAGEMENT_FLOW.map((stage, index) => (
+                <div key={stage.title} className="relative p-4 rounded-xl border border-neutral-800 bg-neutral-950">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-6 h-6 rounded-full bg-blue-500/15 text-blue-300 text-xs font-bold flex items-center justify-center">
+                      {index + 1}
+                    </span>
+                    <h3 className="text-sm font-semibold text-neutral-100">{stage.title}</h3>
+                  </div>
+                  <p className="text-xs text-neutral-500 leading-relaxed min-h-10 mb-3">{stage.description}</p>
+                  <div className="flex flex-wrap gap-x-3 gap-y-1">
+                    {stage.links.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className="text-xs font-medium text-blue-400 hover:text-blue-300"
+                        data-testid={`link-flow-${link.label.toLowerCase().replaceAll(" ", "-").replace("&", "dan")}`}
+                      >
+                        {link.label} →
+                      </Link>
+                    ))}
+                  </div>
+                  {index < MANAGEMENT_FLOW.length - 1 && (
+                    <ArrowRight className="hidden md:block absolute -right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-600 z-10" />
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
           
           {/* Setup Section */}
           <section className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6" data-testid="section-setup">
@@ -203,25 +285,34 @@ export default function KesiapanProyekPage() {
                 filteredChecklist.map(item => {
                   const isChecked = checkedItems.includes(item.id);
                   return (
-                     <button
+                    <div
                       key={item.id}
-                      onClick={() => toggleChecklist(item.id)}
-                       aria-pressed={isChecked}
                       className={`w-full flex items-start gap-4 p-5 hover:bg-neutral-800/50 transition-colors text-left group ${isChecked ? 'bg-emerald-950/10' : ''}`}
-                      data-testid={`button-checklist-${item.id}`}
+                      data-testid={`checklist-${item.id}`}
                     >
-                      <div className="pt-0.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => toggleChecklist(item.id)}
+                        aria-pressed={isChecked}
+                        aria-label={`${isChecked ? "Tandai belum selesai" : "Tandai selesai"}: ${item.label}`}
+                        className="pt-0.5 shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                        data-testid={`button-checklist-${item.id}`}
+                      >
                         {isChecked ? (
                           <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                         ) : (
                           <Circle className="w-5 h-5 text-neutral-600 group-hover:text-neutral-400" />
                         )}
-                      </div>
+                      </button>
                       <div className="flex-1">
-                        <div className={`text-sm md:text-base leading-relaxed mb-2 transition-colors ${isChecked ? 'text-neutral-500 line-through' : 'text-neutral-200'}`}>
+                        <button
+                          type="button"
+                          onClick={() => toggleChecklist(item.id)}
+                          className={`w-full text-left text-sm md:text-base leading-relaxed mb-2 transition-colors ${isChecked ? 'text-neutral-500 line-through' : 'text-neutral-200'}`}
+                        >
                           {item.label}
-                        </div>
-                        <div className="flex items-center gap-2">
+                        </button>
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border ${
                             isChecked 
                               ? 'bg-neutral-900 border-neutral-800 text-neutral-600' 
@@ -229,9 +320,16 @@ export default function KesiapanProyekPage() {
                           }`}>
                             {item.standardId === 'all' ? 'UMUM / MULTI-STANDAR' : item.standardId}
                           </span>
+                          <Link
+                            href={item.module}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-400 hover:text-blue-300"
+                            data-testid={`link-checklist-module-${item.id}`}
+                          >
+                            Buka {MODULE_LABELS[item.module] ?? "modul"} <ArrowRight className="w-3 h-3" />
+                          </Link>
                         </div>
                       </div>
-                    </button>
+                    </div>
                   );
                 })
               )}
@@ -318,6 +416,10 @@ export default function KesiapanProyekPage() {
             <Link href="/proyek" className="flex flex-col gap-3 p-4 bg-neutral-900 border border-neutral-800 rounded-xl hover:bg-neutral-800 hover:border-neutral-600 transition-all group" data-testid="link-module-proyek">
               <FolderOpen className="w-5 h-5 text-neutral-500 group-hover:text-cyan-400 transition-colors" />
               <span className="text-sm font-semibold text-neutral-300">Data Proyek</span>
+            </Link>
+            <Link href="/vendor" className="flex flex-col gap-3 p-4 bg-neutral-900 border border-neutral-800 rounded-xl hover:bg-neutral-800 hover:border-neutral-600 transition-all group" data-testid="link-module-vendor">
+              <Users className="w-5 h-5 text-neutral-500 group-hover:text-teal-400 transition-colors" />
+              <span className="text-sm font-semibold text-neutral-300">Vendor</span>
             </Link>
             <Link href="/perpustakaan" className="flex flex-col gap-3 p-4 bg-neutral-900 border border-neutral-800 rounded-xl hover:bg-neutral-800 hover:border-neutral-600 transition-all group" data-testid="link-module-perpustakaan">
               <BookOpen className="w-5 h-5 text-neutral-500 group-hover:text-orange-400 transition-colors" />
