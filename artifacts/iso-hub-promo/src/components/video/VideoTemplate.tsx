@@ -44,6 +44,7 @@ export default function VideoTemplate({
   durations = SCENE_DURATIONS,
   loop = true,
   muted = false,
+  hideSubtitles = false,
   onSceneChange,
   onAudioElement,
   onAudioBlocked,
@@ -51,6 +52,7 @@ export default function VideoTemplate({
   durations?: Record<string, number>;
   loop?: boolean;
   muted?: boolean;
+  hideSubtitles?: boolean;
   onSceneChange?: (sceneKey: string) => void;
   onAudioElement?: (audio: HTMLAudioElement | null) => void;
   onAudioBlocked?: () => void;
@@ -189,7 +191,7 @@ export default function VideoTemplate({
           {SceneComponent && <SceneComponent key={currentSceneKey} />}
         </AnimatePresence>
 
-        <Captions currentSceneKey={currentSceneKey} />
+        {!hideSubtitles && <Captions currentSceneKey={currentSceneKey} />}
       </div>
 
       <audio

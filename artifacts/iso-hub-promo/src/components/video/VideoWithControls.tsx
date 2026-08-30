@@ -4,6 +4,12 @@ import { ChevronDown, ChevronUp, Repeat, Volume2, VolumeX } from 'lucide-react';
 import VideoTemplate, { SCENE_DURATIONS } from './VideoTemplate';
 import { useSceneControls } from '@/hooks/useSceneControls';
 
+declare global {
+  interface Window {
+    __hideSubtitles?: boolean;
+  }
+}
+
 const PROGRESS_TICK_MS = 60;
 
 interface ControlBarProps {
@@ -158,6 +164,11 @@ export default function VideoWithControls() {
   const isExporting =
     typeof window !== 'undefined' && typeof window.startRecording === 'function';
 
+  const hideSubtitles =
+    typeof window !== 'undefined' &&
+    (new URLSearchParams(window.location.search).get('hideSubtitles') === 'true' ||
+      window.__hideSubtitles === true);
+
   const {
     sceneKeys,
     activeIndex,
@@ -255,7 +266,7 @@ export default function VideoWithControls() {
   const barVisible = !collapsed || hovering || tapPinned;
 
   // Export path: renders with no props so recording markers fire correctly and controls stay hidden
-  if (isExporting) return <VideoTemplate />;
+  if (isExporting) return <VideoTemplate hideSubtitles={hideSubtitles} />;
 
   return (
     <div className="relative w-full h-screen">
@@ -264,6 +275,7 @@ export default function VideoWithControls() {
         durations={durations}
         loop
         muted={muted}
+        hideSubtitles={hideSubtitles}
         onSceneChange={onSceneChange}
         onAudioElement={handleAudioElement}
         onAudioBlocked={handleAudioBlocked}
