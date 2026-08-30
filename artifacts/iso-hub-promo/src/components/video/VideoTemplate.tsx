@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useVideoPlayer } from '@/lib/video';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -44,11 +44,15 @@ export default function VideoTemplate({
   loop = true,
   muted = false,
   onSceneChange,
+  onAudioElement,
+  onAudioBlocked,
 }: {
   durations?: Record<string, number>;
   loop?: boolean;
   muted?: boolean;
   onSceneChange?: (sceneKey: string) => void;
+  onAudioElement?: (audio: HTMLAudioElement | null) => void;
+  onAudioBlocked?: () => void;
 } = {}) {
   const { currentScene, currentSceneKey } = useVideoPlayer({ durations, loop });
 
@@ -61,25 +65,32 @@ export default function VideoTemplate({
 
   const SceneComponent = SCENE_COMPONENTS[baseSceneKey];
 
-  const musicRef = useRef<HTMLAudioElement | null>(null);
-  const voiceoverRef = useRef<HTMLAudioElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const lastSceneKeyRef = useRef<string | null>(null);
+  const handleAudioRef = useCallback(
+    (audio: HTMLAudioElement | null) => {
+      audioRef.current = audio;
+      onAudioElement?.(audio);
+    },
+    [onAudioElement],
+  );
 
   useEffect(() => {
-    const targetTime = SCENE_START_SEC[baseSceneKey] ?? 0;
-    const tracks = [
-      { audio: musicRef.current, volume: 0.18 },
-      { audio: voiceoverRef.current, volume: 0.95 },
-    ];
+    const audio = audioRef.current;
+    if (!audio) return;
 
-    tracks.forEach(({ audio, volume }) => {
-      if (!audio) return;
-      audio.volume = volume;
+    audio.volume = 1;
+    if (lastSceneKeyRef.current !== currentSceneKey) {
+      lastSceneKeyRef.current = currentSceneKey;
+      const targetTime = SCENE_START_SEC[baseSceneKey] ?? 0;
       if (Math.abs(audio.currentTime - targetTime) > AUDIO_SEEK_EPSILON_SEC) {
         audio.currentTime = targetTime;
       }
-      audio.play().catch(() => {});
+    }
+    audio.play().catch(() => {
+      if (!muted) onAudioBlocked?.();
     });
-  }, [currentSceneKey, baseSceneKey, muted]);
+  }, [currentSceneKey, baseSceneKey, muted, onAudioBlocked]);
 
   return (
     <>
@@ -179,20 +190,10 @@ export default function VideoTemplate({
       </div>
 
       <audio
-        ref={musicRef}
-        src={`${import.meta.env.BASE_URL}audio/bg_music.mp3`}
+        ref={handleAudioRef}
+        src={`${import.meta.env.BASE_URL}audio/composite_audio.mp3`}
         preload="auto"
         autoPlay
-        loop
-        aria-hidden="true"
-        muted={muted}
-      />
-      <audio
-        ref={voiceoverRef}
-        src={`${import.meta.env.BASE_URL}audio/voiceover_id.mp3`}
-        preload="auto"
-        autoPlay
-        loop
         aria-label="Narasi Bahasa Indonesia"
         muted={muted}
       />

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { ChevronDown, ChevronUp, Repeat, Volume2, VolumeX } from 'lucide-react';
 import VideoTemplate, { SCENE_DURATIONS } from './VideoTemplate';
 import { useSceneControls } from '@/hooks/useSceneControls';
@@ -116,7 +117,7 @@ function ControlBar({
         }`}
         title={muted ? 'Unmute audio' : 'Mute audio'}
         aria-label={muted ? 'Unmute audio' : 'Mute audio'}
-        aria-pressed={!muted}
+        aria-pressed={muted}
       >
         {muted ? <VolumeX className="w-8 h-8" /> : <Volume2 className="w-8 h-8" />}
       </button>
@@ -170,11 +171,52 @@ export default function VideoWithControls() {
     toggleLock,
   } = useSceneControls(SCENE_DURATIONS);
 
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(false);
+  const [audioBlocked, setAudioBlocked] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [hovering, setHovering] = useState(false);
   const [tapPinned, setTapPinned] = useState(false);
   const sensorRef = useRef<HTMLDivElement | null>(null);
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+
+  const handleAudioElement = useCallback((audio: HTMLAudioElement | null) => {
+    audioElementRef.current = audio;
+  }, []);
+
+  const handleAudioBlocked = useCallback(() => {
+    setMuted(true);
+    setAudioBlocked(true);
+  }, []);
+
+  const enableAudio = useCallback(() => {
+    const audio = audioElementRef.current;
+    if (!audio) {
+      setAudioBlocked(true);
+      return;
+    }
+
+    flushSync(() => {
+      setMuted(false);
+      setAudioBlocked(false);
+    });
+    audio.muted = false;
+    audio
+      .play()
+      .then(() => setAudioBlocked(false))
+      .catch(() => {
+        audio.muted = true;
+        setMuted(true);
+        setAudioBlocked(true);
+      });
+  }, []);
+
+  const handleToggleMute = useCallback(() => {
+    if (muted) {
+      enableAudio();
+      return;
+    }
+    setMuted(true);
+  }, [enableAudio, muted]);
 
   const handlePointerEnter = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === 'mouse') setHovering(true);
@@ -223,7 +265,23 @@ export default function VideoWithControls() {
         loop
         muted={muted}
         onSceneChange={onSceneChange}
+        onAudioElement={handleAudioElement}
+        onAudioBlocked={handleAudioBlocked}
       />
+
+      {audioBlocked && (
+        <div className="absolute inset-0 z-[60] flex items-center justify-center pointer-events-none">
+          <button
+            type="button"
+            onClick={enableAudio}
+            className="pointer-events-auto flex items-center gap-3 rounded-full border border-white/20 bg-black/75 px-7 py-4 text-lg font-semibold text-white shadow-2xl backdrop-blur-md transition hover:bg-black/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+            aria-label="Nyalakan narasi Bahasa Indonesia"
+          >
+            <Volume2 className="h-6 w-6" />
+            Nyalakan Narasi
+          </button>
+        </div>
+      )}
 
       <div
         ref={sensorRef}
@@ -244,7 +302,7 @@ export default function VideoWithControls() {
           activeDuration={activeDuration}
           tick={tick}
           onToggleLock={toggleLock}
-          onToggleMute={() => setMuted((m) => !m)}
+          onToggleMute={handleToggleMute}
           onJumpTo={jumpTo}
           onToggleCollapsed={handleToggleCollapsed}
         />
