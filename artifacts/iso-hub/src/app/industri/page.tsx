@@ -53,6 +53,9 @@ export default function IndustriesPage() {
             Setiap industri memiliki kebutuhan ISO yang berbeda-beda. Pilih industri Anda untuk melihat standar yang relevan.
           </p>
           <div className="flex flex-wrap gap-4">
+            <Link href="/kesiapan-proyek" className="px-4 py-2 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors" data-testid="link-construction-readiness">
+              Cek Kesiapan Proyek Konstruksi
+            </Link>
             <Link href="#manufacturing" className="px-4 py-2 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors">
               Manufaktur
             </Link>
@@ -110,8 +113,9 @@ export default function IndustriesPage() {
                 </div>
 
                 <Link 
-                  href={`/industri/${industry.id}`}
+                  href={`/industri#${industry.id}`}
                   className="block w-full text-center px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg text-sm font-medium transition-colors"
+                  data-testid={`link-industry-${industry.id}`}
                 >
                   Lihat Detail →
                 </Link>

@@ -27,6 +27,7 @@ import KalibrasiPage from "@/app/kalibrasi/page";
 import KpiPage from "@/app/kpi/page";
 import PerubahanPage from "@/app/perubahan/page";
 import IndustriPage from "@/app/industri/page";
+import KesiapanProyekPage from "@/app/kesiapan-proyek/page";
 import AgentsPage from "@/app/agents/page";
 import IsoGeneratorPage from "@/app/iso-generator/page";
 import OPCPage from "@/app/opc/page";
@@ -63,6 +64,7 @@ function Router() {
         <Route path="/kpi" component={KpiPage} />
         <Route path="/perubahan" component={PerubahanPage} />
         <Route path="/industri" component={IndustriPage} />
+        <Route path="/kesiapan-proyek" component={KesiapanProyekPage} />
         <Route path="/agents" component={AgentsPage} />
         <Route path="/iso-generator" component={IsoGeneratorPage} />
         <Route path="/opc" component={OPCPage} />

@@ -35,6 +35,7 @@ const painPoints = [
 ];
 
 const features = [
+  { title: "Kesiapan Tender & Proyek", description: "Ubah kebutuhan proyek konstruksi menjadi checklist bukti mutu, K3, lingkungan, risiko, dan audit yang siap ditindaklanjuti", href: "/kesiapan-proyek", color: "bg-orange-500", icon: "M3 7.5A2.5 2.5 0 015.5 5h13A2.5 2.5 0 0121 7.5v9a2.5 2.5 0 01-2.5 2.5h-13A2.5 2.5 0 013 16.5v-9zM7 9h10M7 13h6" },
   { title: "AI Agents", description: "Agen cerdas yang memandu sertifikasi, gap analysis, dan pembuatan dokumen ISO secara otomatis", href: "/agents", color: "bg-blue-600", icon: "M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" },
   { title: "ISO Generator", description: "Generate dokumen ISO — manual mutu, prosedur, instruksi kerja — siap pakai dalam menit", href: "/iso-generator", color: "bg-violet-600", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
   { title: "Manajemen Risiko", description: "Identifikasi, evaluasi, dan mitigasi risiko sesuai ISO 31000 dengan risk matrix interaktif", href: "/risiko", color: "bg-red-500", icon: "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" },
@@ -44,6 +45,7 @@ const features = [
 ];
 
 const allMenuItems = [
+  { title: "Kesiapan Proyek", description: "Checklist ISO untuk tender & proyek", href: "/kesiapan-proyek", color: "bg-orange-500", icon: "M3 7.5A2.5 2.5 0 015.5 5h13A2.5 2.5 0 0121 7.5v9a2.5 2.5 0 01-2.5 2.5h-13A2.5 2.5 0 013 16.5v-9zM7 9h10M7 13h6" },
   { title: "Learning", description: "E-course, E-book & Chatbot AI", href: "/learning", color: "bg-yellow-500", icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" },
   { title: "Produktivitas", description: "Mini apps & tools ISO", href: "/produktivitas", color: "bg-teal-500", icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" },
   { title: "Risiko", description: "Manajemen Risiko ISO 31000", href: "/risiko", color: "bg-red-500", icon: "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" },
