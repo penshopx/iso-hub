@@ -1,1 +1,2 @@
 - [Expo OIDC browser testing](expo-oidc-browser-testing.md) — the test issuer may block Expo web discovery via CORS; distinguish harness failure from native auth behavior.
+- [ISO Hub route validation](iso-hub-route-validation.md) — standalone Vite checks need PORT/BASE_PATH and process-group cleanup.
