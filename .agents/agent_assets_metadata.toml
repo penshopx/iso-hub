@@ -20,3 +20,10 @@ uri = "file://.local/outputs/ISO-Hub-Pitch-Deck.pptx"
 type = "slides"
 title = "ISO Hub Pitch Deck (PPTX)"
 description = "PowerPoint pitch deck ISO Hub dengan 10 slide dan presenter talking points."
+
+[[outputs]]
+id = "YfjPHIYmCCZMdp-jk8mZW"
+uri = "file://.local/outputs/ISO-Hub-Pitch-Deck-English.pptx"
+type = "slides"
+title = "ISO Hub Pitch Deck — English (PPTX)"
+description = "English investor pitch deck with 10 slides and English presenter notes."

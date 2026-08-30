@@ -1,0 +1,28 @@
+kind = "slides"
+previewPath = "/iso-hub-pitch-en/"
+title = "ISO Hub Pitch Deck — English"
+description = "English investor and client presentation for ISO Hub, adapted from the Indonesian deck with the same visual system and ten-slide narrative."
+version = "1.0.0"
+id = "artifacts/iso-hub-pitch-en"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/iso-hub-pitch-en/" ]
+localPort = 26027
+
+[services.development]
+run = "pnpm --filter @workspace/iso-hub-pitch-en run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/iso-hub-pitch-en", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/iso-hub-pitch-en/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26027"
+BASE_PATH = "/iso-hub-pitch-en/"
