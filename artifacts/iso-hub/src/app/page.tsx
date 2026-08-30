@@ -152,24 +152,23 @@ export default function Home() {
           {/* badge */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium mb-6">
             <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />
-            Platform ISO #1 di Indonesia
+            Platform Tata Kelola ISO #1 di Indonesia
           </div>
 
           <h1 className="text-4xl md:text-6xl font-extrabold leading-tight tracking-tight mb-6">
-            Sertifikasi ISO{" "}
             <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-              Lebih Cepat,
+              Operating System
             </span>
             <br />
-            Lebih Mudah, Lebih Hemat
+            Untuk Manajemen ISO Anda
           </h1>
 
           <p className="text-lg md:text-xl text-neutral-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Dari gap analysis hingga dokumen siap audit — ISO Hub menggabungkan{" "}
-            <span className="text-white font-medium">kecerdasan AI</span>,{" "}
-            <span className="text-white font-medium">konsultan terverifikasi</span>, dan{" "}
-            <span className="text-white font-medium">tools manajemen lengkap</span>{" "}
-            dalam satu platform.
+            Lebih dari sekadar AI pembuat dokumen. ISO Hub adalah platform yang menghubungkan{" "}
+            <span className="text-white font-medium">kontrol operasional</span>,{" "}
+            <span className="text-white font-medium">fasilitator terverifikasi</span>, dan{" "}
+            <span className="text-white font-medium">metrik kepatuhan</span>{" "}
+            lintas standar dan industri dalam satu ekosistem.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -201,6 +200,72 @@ export default function Home() {
               <svg className="w-3.5 h-3.5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
               AI + Konsultan manusia
             </span>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════
+          C — COMPARISON: OS vs Document Generator
+      ══════════════════════════════════════ */}
+      <section className="py-20 px-6 border-t border-neutral-800 bg-neutral-900/20">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-14">
+            <p className="text-red-400 text-sm font-semibold uppercase tracking-widest mb-3">Diferensiasi Produk</p>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Bukan Sekadar <span className="text-red-400">AI Pembuat Dokumen</span>
+            </h2>
+            <p className="text-neutral-400 text-base max-w-2xl mx-auto">
+              Pembuatan dokumen otomatis hanyalah langkah awal. Kepatuhan nyata membutuhkan tata kelola insiden, manajemen risiko aktif, serta bimbingan dari ahli yang terverifikasi.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Document generator category */}
+            <div className="p-8 rounded-2xl bg-neutral-900 border border-neutral-800">
+              <div className="mb-6">
+                <h3 className="text-xl font-bold text-neutral-300 mb-2">Generator Dokumen ISO</h3>
+                <p className="text-sm text-neutral-500">Fokus pada dokumentasi untuk standar atau kebutuhan tertentu</p>
+              </div>
+              <ul className="space-y-4">
+                {[
+                  "Mengubah kebutuhan menjadi draf dan template dokumen",
+                  "Paling tepat saat kebutuhan utama Anda adalah menyiapkan dokumentasi",
+                  "Nilai utamanya ada pada output dokumen yang siap ditinjau",
+                  "Ruang lingkup layanan mengikuti standar atau paket yang dipilih",
+                  "Belum mencakup seluruh siklus pengelolaan kepatuhan operasional"
+                ].map((text, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-red-500/70 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+                    <span className="text-sm text-neutral-400 leading-relaxed">{text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* ISO Hub OS */}
+            <div className="relative p-8 rounded-2xl bg-gradient-to-br from-blue-900/20 to-violet-900/20 border border-blue-500/30 shadow-2xl shadow-blue-500/10">
+              <div className="absolute top-0 right-0 px-4 py-1.5 bg-blue-500 text-white text-xs font-bold rounded-bl-2xl rounded-tr-xl">
+                ISO Hub
+              </div>
+              <div className="mb-6">
+                <h3 className="text-xl font-bold text-white mb-2">The ISO Operating System</h3>
+                <p className="text-sm text-blue-200">Ekosistem lengkap untuk membangun, menjalankan, & mengukur kepatuhan</p>
+              </div>
+              <ul className="space-y-4">
+                {[
+                  "Generator AI terintegrasi dengan tata kelola dokumen end-to-end",
+                  "Mendukung berbagai standar (ISO 9001, 14001, 27001, dll) & industri",
+                  "Manajemen operasional berkelanjutan (Audit, KPI, Insiden, Risiko)",
+                  "Marketplace fasilitator dan direktori badan sertifikasi",
+                  "Sistem aktif dengan orkestrasi multi-agent (OPC CLAW) & kalender kepatuhan"
+                ].map((text, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
+                    <span className="text-sm text-white font-medium leading-relaxed">{text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </section>
