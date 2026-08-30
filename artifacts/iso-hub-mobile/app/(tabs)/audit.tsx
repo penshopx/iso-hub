@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,11 +8,13 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useColors } from '@/hooks/useColors';
-import { apiFetch, AuditTask, KpiItem } from '@/lib/api';
+import { apiFetch, AuditTask, cachedApiFetch, hydrateQueryCache, KpiItem } from '@/lib/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '@/lib/auth';
+import { OfflineBanner } from '@/components/OfflineBanner';
 
 const STATUS_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   completed: 'checkmark-circle',
@@ -83,17 +85,33 @@ function AuditTaskRow({ task, colors }: { task: AuditTask; colors: ReturnType<ty
 export default function AuditScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const scope = user?.id;
+  const queryClient = useQueryClient();
 
   const topPad = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPad = Platform.OS === 'web' ? 34 : insets.bottom;
 
+  const kpiQueryKey = ['kpi', scope] as const;
+
+  useEffect(() => {
+    if (!scope) return;
+    void hydrateQueryCache<{ data: KpiItem[] }, KpiItem[]>(
+      queryClient,
+      kpiQueryKey,
+      'kpi',
+      scope,
+      response => response.data,
+    );
+  }, [queryClient, scope]);
+
   const { data: kpiData, isLoading: kpiLoading, refetch: refetchKpi, isRefetching: isRefetchingKpi } = useQuery({
-    queryKey: ['kpi'],
-    queryFn: () => apiFetch<{ data: KpiItem[] }>('/v1/kpi').then(r => r.data),
+    queryKey: kpiQueryKey,
+    queryFn: () => cachedApiFetch<{ data: KpiItem[] }>('kpi', '/v1/kpi', scope).then(r => r.data),
   });
 
   const { data: auditData, isLoading: auditLoading, refetch: refetchAudit } = useQuery({
-    queryKey: ['audit'],
+    queryKey: ['audit', scope],
     queryFn: () => apiFetch<{ data: AuditTask[] }>('/v1/audit').then(r => r.data),
   });
 
@@ -106,6 +124,7 @@ export default function AuditScreen() {
       <View style={[s.header, { paddingTop: topPad + 12 }]}>
         <Text style={[s.headerTitle, { color: colors.foreground }]}>Audit & KPI</Text>
       </View>
+      <OfflineBanner cacheKey="kpi" scope={scope} isRefreshing={isRefetchingKpi} />
 
       {isLoading ? (
         <View style={s.center}><ActivityIndicator color={colors.primary} size="large" /></View>

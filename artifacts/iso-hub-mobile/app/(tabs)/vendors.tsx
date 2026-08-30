@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -13,14 +13,20 @@ import {
 } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useColors } from '@/hooks/useColors';
-import { Vendor } from '@/lib/api';
+import {
+  apiFetch,
+  cachedApiFetch,
+  enqueueOfflineMutation,
+  hydrateQueryCache,
+  isOfflineError,
+  updateCached,
+  Vendor,
+} from '@/lib/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/lib/auth';
-import { createWithOfflineQueue, fetchCollection, makeTemporaryId } from '@/lib/offline';
-import { useOfflineStatus } from '@/lib/offline-context';
-import { OfflineStatusBanner } from '@/components/OfflineStatusBanner';
+import { OfflineBanner } from '@/components/OfflineBanner';
 
 const STATUS_COLORS: Record<string, string> = {
   active: '#22c55e',
@@ -99,12 +105,18 @@ interface AddVendorForm {
   status: string;
 }
 
+interface AddVendorResult {
+  success: boolean;
+  queued?: boolean;
+  localItem?: Vendor;
+}
+
 export default function VendorsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const { user } = useAuth();
-  const { markOnline, markOffline, markQueued } = useOfflineStatus();
+  const scope = user?.id;
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState<AddVendorForm>({
     name: '', category: '', contactPerson: '', email: '', phone: '', status: 'active',
@@ -113,61 +125,69 @@ export default function VendorsScreen() {
   const topPad = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPad = Platform.OS === 'web' ? 34 : insets.bottom;
 
+  const queryKey = ['vendors', scope] as const;
+
+  useEffect(() => {
+    if (!scope) return;
+    void hydrateQueryCache<{ data: Vendor[] }, Vendor[]>(
+      qc,
+      queryKey,
+      'vendors',
+      scope,
+      response => response.data,
+    );
+  }, [qc, scope]);
+
   const { data, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ['vendors', user?.id],
-    enabled: Boolean(user?.id),
-    queryFn: () => fetchCollection<Vendor>({
-      userId: user!.id,
-      collection: 'vendors',
-      endpoint: '/v1/vendors',
-      onNetworkSuccess: markOnline,
-      onNetworkError: markOffline,
-    }),
+    queryKey,
+    queryFn: () => cachedApiFetch<{ data: Vendor[] }>('vendors', '/v1/vendors', scope).then(r => r.data),
   });
 
-  const addMutation = useMutation({
-    mutationFn: async (body: AddVendorForm) => {
-      if (!user?.id) throw new Error('User is not authenticated');
-
-      return createWithOfflineQueue<Vendor>({
-        userId: user.id,
-        collection: 'vendors',
-        endpoint: '/v1/vendors',
-        payload: { ...body },
-        optimistic: {
-          id: makeTemporaryId(),
-          name: body.name.trim(),
+  const addMutation = useMutation<AddVendorResult, Error, AddVendorForm>({
+    mutationFn: async (body): Promise<AddVendorResult> => {
+      if (!scope) throw new Error('Sesi pengguna belum siap');
+      const request = { method: 'POST' as const, body: JSON.stringify(body) };
+      try {
+        return await apiFetch<{ success: boolean }>('/v1/vendors', request);
+      } catch (error) {
+        if (!isOfflineError(error)) throw error;
+        await enqueueOfflineMutation({
+          scope,
+          resource: 'vendors',
+          path: '/v1/vendors',
+          method: 'POST',
+          body: request.body,
+        });
+        const localItem: Vendor = {
+          id: -Date.now(),
+          name: body.name,
           category: body.category || null,
           contactPerson: body.contactPerson || null,
           email: body.email || null,
           phone: body.phone || null,
-          status: body.status || 'active',
+          status: body.status,
           createdAt: new Date().toISOString(),
-        },
-      });
-    },
-    onSuccess: result => {
-      const queryKey = ['vendors', user?.id];
-      if (result.queued) {
-        markQueued();
-        qc.setQueryData<Vendor[]>(queryKey, current => [
-          result.data,
-          ...(current ?? []).filter(item => item.id !== result.data.id),
-        ]);
-      } else {
-        markOnline();
-        void qc.invalidateQueries({ queryKey });
+          pendingSync: true,
+        };
+        return { success: true, queued: true, localItem };
       }
-      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+    onSuccess: async (result) => {
+      if (result.queued && result.localItem && scope) {
+        const localItem = result.localItem;
+        qc.setQueryData<Vendor[]>(queryKey, current => [localItem, ...(current ?? [])]);
+        await updateCached<{ data: Vendor[] }>('vendors', scope, value => ({
+          ...(value ?? { data: [] }),
+          data: [localItem, ...(value?.data ?? [])],
+        }));
+      } else {
+        qc.invalidateQueries({ queryKey });
+        qc.invalidateQueries({ queryKey: ['dashboard', scope] });
+      }
       setShowAdd(false);
       setForm({ name: '', category: '', contactPerson: '', email: '', phone: '', status: 'active' });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      if (result.queued) {
-        Alert.alert(
-          'Tersimpan di perangkat',
-          'Vendor akan otomatis dikirim ke akun Anda saat koneksi internet kembali.',
-        );
-      }
+      if (result.queued) Alert.alert('Disimpan offline', 'Vendor akan dikirim saat koneksi kembali.');
     },
     onError: () => Alert.alert('Error', 'Gagal menambahkan vendor.'),
   });
@@ -185,7 +205,7 @@ export default function VendorsScreen() {
           <Ionicons name="add" size={22} color="#fff" />
         </TouchableOpacity>
       </View>
-      <OfflineStatusBanner />
+      <OfflineBanner cacheKey="vendors" scope={scope} isRefreshing={isRefetching} />
 
       {isLoading ? (
         <View style={s.center}><ActivityIndicator color={colors.primary} size="large" /></View>

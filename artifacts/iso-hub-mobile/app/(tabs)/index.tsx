@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,13 +9,14 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useColors } from '@/hooks/useColors';
-import { apiFetch, DashboardStats } from '@/lib/api';
+import { cachedApiFetch, DashboardStats, hydrateQueryCache } from '@/lib/api';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { OfflineBanner } from '@/components/OfflineBanner';
 
 interface MenuItem {
   title: string;
@@ -46,10 +47,24 @@ export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const scope = user?.id;
+  const queryKey = ['dashboard', scope] as const;
+
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!scope) return;
+    void hydrateQueryCache<{ stats: DashboardStats }, DashboardStats>(
+      queryClient,
+      queryKey,
+      'dashboard',
+      scope,
+      response => response.stats,
+    );
+  }, [queryClient, scope]);
 
   const { data, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ['dashboard'],
-    queryFn: () => apiFetch<{ stats: DashboardStats }>('/v1/dashboard').then(r => r.stats),
+    queryKey,
+    queryFn: () => cachedApiFetch<{ stats: DashboardStats }>('dashboard', '/v1/dashboard', scope).then(r => r.stats),
   });
 
   const topPad = Platform.OS === 'web' ? 67 : insets.top;
@@ -98,6 +113,7 @@ export default function DashboardScreen() {
           <Ionicons name="log-out-outline" size={22} color={colors.mutedForeground} />
         </TouchableOpacity>
       </View>
+      <OfflineBanner cacheKey="dashboard" scope={scope} isRefreshing={isRefetching} />
 
       {/* Welcome */}
       <View style={s.welcomeBlock}>

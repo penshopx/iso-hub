@@ -11,16 +11,16 @@ import {
   Inter_700Bold,
   useFonts,
 } from '@expo-google-fonts/inter';
-import { Redirect, Stack, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { ActivityIndicator, View } from 'react-native';
 import { useNotifications } from '@/hooks/useNotifications';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { useColors } from '@/hooks/useColors';
-import { OfflineProvider } from '@/lib/offline-context';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+import { Redirect, Stack, useSegments, type Href } from 'expo-router';
+import { useOfflineSync } from '@/hooks/useOfflineStatus';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,6 +40,7 @@ function RootLayoutNav() {
   const colors = useColors();
   const segments = useSegments();
   const { isAuthenticated, isLoading, user } = useAuth();
+  useOfflineSync(user?.id);
 
   useEffect(() => {
     queryClient.clear();
@@ -53,18 +54,18 @@ function RootLayoutNav() {
     );
   }
 
-  const isOnLogin = segments[0] === 'login';
-  if (!isAuthenticated && !isOnLogin) return <Redirect href="/login" />;
+  const isOnLogin = (segments as readonly string[])[0] === 'login';
+  if (!isAuthenticated && !isOnLogin) return <Redirect href={'/login' as Href} />;
   if (isAuthenticated && isOnLogin) return <Redirect href="/" />;
 
   return (
-    <OfflineProvider userId={user?.id ?? null}>
+    <>
       {isAuthenticated ? <AuthenticatedEffects /> : null}
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
-    </OfflineProvider>
+    </>
   );
 }
 

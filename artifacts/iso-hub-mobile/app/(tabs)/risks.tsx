@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -13,14 +13,20 @@ import {
 } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useColors } from '@/hooks/useColors';
-import { Risk } from '@/lib/api';
+import {
+  apiFetch,
+  cachedApiFetch,
+  enqueueOfflineMutation,
+  hydrateQueryCache,
+  isOfflineError,
+  updateCached,
+  Risk,
+} from '@/lib/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/lib/auth';
-import { createWithOfflineQueue, fetchCollection, makeTemporaryId } from '@/lib/offline';
-import { useOfflineStatus } from '@/lib/offline-context';
-import { OfflineStatusBanner } from '@/components/OfflineStatusBanner';
+import { OfflineBanner } from '@/components/OfflineBanner';
 
 const LEVEL_COLORS: Record<string, string> = {
   critical: '#ef4444',
@@ -96,12 +102,18 @@ interface AddRiskForm {
   mitigation: string;
 }
 
+interface AddRiskResult {
+  success: boolean;
+  queued?: boolean;
+  localItem?: Risk;
+}
+
 export default function RisksScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const { user } = useAuth();
-  const { markOnline, markOffline, markQueued } = useOfflineStatus();
+  const scope = user?.id;
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState<AddRiskForm>({
     name: '', description: '', category: '', probability: '3', impact: '3', owner: '', mitigation: '',
@@ -110,68 +122,75 @@ export default function RisksScreen() {
   const topPad = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPad = Platform.OS === 'web' ? 34 : insets.bottom;
 
+  const queryKey = ['risks', scope] as const;
+
+  useEffect(() => {
+    if (!scope) return;
+    void hydrateQueryCache<{ data: Risk[]; total: number }, Risk[]>(
+      qc,
+      queryKey,
+      'risks',
+      scope,
+      response => response.data,
+    );
+  }, [qc, scope]);
+
   const { data, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ['risks', user?.id],
-    enabled: Boolean(user?.id),
-    queryFn: () => fetchCollection<Risk>({
-      userId: user!.id,
-      collection: 'risks',
-      endpoint: '/v1/risks',
-      onNetworkSuccess: markOnline,
-      onNetworkError: markOffline,
-    }),
+    queryKey,
+    queryFn: () => cachedApiFetch<{ data: Risk[]; total: number }>('risks', '/v1/risks', scope).then(r => r.data),
   });
 
-  const addMutation = useMutation({
-    mutationFn: async (body: AddRiskForm) => {
-      if (!user?.id) throw new Error('User is not authenticated');
-      const probability = Number(body.probability) || 1;
-      const impact = Number(body.impact) || 1;
-      const score = probability * impact;
-      const riskLevel = score >= 15 ? 'critical' : score >= 9 ? 'high' : score >= 4 ? 'medium' : 'low';
-
-      return createWithOfflineQueue<Risk>({
-        userId: user.id,
-        collection: 'risks',
-        endpoint: '/v1/risks',
-        payload: { ...body },
-        optimistic: {
-          id: makeTemporaryId(),
-          name: body.name.trim(),
+  const addMutation = useMutation<AddRiskResult, Error, AddRiskForm>({
+    mutationFn: async (body): Promise<AddRiskResult> => {
+      if (!scope) throw new Error('Sesi pengguna belum siap');
+      const request = { method: 'POST' as const, body: JSON.stringify(body) };
+      try {
+        return await apiFetch<{ success: boolean }>('/v1/risks', request);
+      } catch (error) {
+        if (!isOfflineError(error)) throw error;
+        await enqueueOfflineMutation({
+          scope,
+          resource: 'risks',
+          path: '/v1/risks',
+          method: 'POST',
+          body: request.body,
+        });
+        const probability = Number(body.probability) || 1;
+        const impact = Number(body.impact) || 1;
+        const score = probability * impact;
+        const localItem: Risk = {
+          id: -Date.now(),
+          name: body.name,
           description: body.description || null,
           category: body.category || null,
           probability,
           impact,
-          riskLevel,
+          riskLevel: score >= 15 ? 'critical' : score >= 9 ? 'high' : score >= 4 ? 'medium' : 'low',
           owner: body.owner || null,
           status: 'open',
           mitigation: body.mitigation || null,
           createdAt: new Date().toISOString(),
-        },
-      });
-    },
-    onSuccess: result => {
-      const queryKey = ['risks', user?.id];
-      if (result.queued) {
-        markQueued();
-        qc.setQueryData<Risk[]>(queryKey, current => [
-          result.data,
-          ...(current ?? []).filter(item => item.id !== result.data.id),
-        ]);
-      } else {
-        markOnline();
-        void qc.invalidateQueries({ queryKey });
+          pendingSync: true,
+        };
+        return { success: true, queued: true, localItem };
       }
-      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+    onSuccess: async (result) => {
+      if (result.queued && result.localItem && scope) {
+        const localItem = result.localItem;
+        qc.setQueryData<Risk[]>(queryKey, current => [localItem, ...(current ?? [])]);
+        await updateCached<{ data: Risk[]; total: number }>('risks', scope, value => ({
+          ...(value ?? { data: [], total: 0 }),
+          data: [localItem, ...(value?.data ?? [])],
+        }));
+      } else {
+        qc.invalidateQueries({ queryKey });
+        qc.invalidateQueries({ queryKey: ['dashboard', scope] });
+      }
       setShowAdd(false);
       setForm({ name: '', description: '', category: '', probability: '3', impact: '3', owner: '', mitigation: '' });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      if (result.queued) {
-        Alert.alert(
-          'Tersimpan di perangkat',
-          'Risiko akan otomatis dikirim ke akun Anda saat koneksi internet kembali.',
-        );
-      }
+      if (result.queued) Alert.alert('Disimpan offline', 'Risiko akan dikirim saat koneksi kembali.');
     },
     onError: () => Alert.alert('Error', 'Gagal menambahkan risiko.'),
   });
@@ -190,7 +209,7 @@ export default function RisksScreen() {
           <Ionicons name="add" size={22} color="#fff" />
         </TouchableOpacity>
       </View>
-      <OfflineStatusBanner />
+      <OfflineBanner cacheKey="risks" scope={scope} isRefreshing={isRefetching} />
 
       {isLoading ? (
         <View style={s.center}>
