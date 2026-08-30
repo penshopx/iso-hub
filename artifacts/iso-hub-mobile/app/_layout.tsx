@@ -14,6 +14,7 @@ import {
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from 'react-native';
+import { useNotifications } from '@/hooks/useNotifications';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -30,6 +31,9 @@ const queryClient = new QueryClient({
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+
+  // Request notification permissions on first launch and wire up reminders/alerts
+  useNotifications();
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
