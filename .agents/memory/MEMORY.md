@@ -1,3 +1,4 @@
 - [Expo OIDC browser testing](expo-oidc-browser-testing.md) — the test issuer may block Expo web discovery via CORS; distinguish harness failure from native auth behavior.
 - [ISO Hub route validation](iso-hub-route-validation.md) — standalone Vite checks need PORT/BASE_PATH and process-group cleanup.
 - [Pitch deck language variants](pitch-deck-language-variants.md) — keep Indonesian and English investor decks separate so edits and exports never overwrite another language.
+- [Postgres migration baseline](postgres-migration-baseline.md) — this existing database has no Drizzle snapshot baseline; use additive idempotent SQL instead of generating a full initial migration.

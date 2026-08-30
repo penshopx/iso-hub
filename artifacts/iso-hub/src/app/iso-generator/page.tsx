@@ -10,9 +10,10 @@ export default function IsoGeneratorPage() {
     fetch('/api/iso/documents')
       .then(r => r.json())
       .then(d => {
-        if (Array.isArray(d)) {
-          const generated = d.filter(doc => doc.status !== 'template').length;
-          const templates = d.filter(doc => doc.type === 'template').length;
+        const documents = Array.isArray(d) ? d : d?.data;
+        if (Array.isArray(documents)) {
+          const generated = documents.filter(doc => doc.status !== 'template').length;
+          const templates = documents.filter(doc => doc.type === 'template').length;
           setData({ generated, templates });
         }
       })

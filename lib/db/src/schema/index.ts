@@ -18,14 +18,35 @@ export const users = pgTable("users", {
 
 export const isoDocuments = pgTable("iso_documents", {
   id: serial("id").primaryKey(),
+  userId: text("user_id"),
   title: text("title").notNull(),
   type: text("type").notNull(),
   category: text("category").notNull(),
+  isoStandard: text("iso_standard"),
   content: text("content"),
   status: text("status").default("draft"),
   version: integer("version").default(1),
+  reviewer: text("reviewer"),
+  approver: text("approver"),
+  reviewDueDate: timestamp("review_due_date"),
+  reviewedAt: timestamp("reviewed_at"),
+  approvedAt: timestamp("approved_at"),
+  distributedAt: timestamp("distributed_at"),
+  changeSummary: text("change_summary"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const documentRevisions = pgTable("document_revisions", {
+  id: serial("id").primaryKey(),
+  documentId: integer("document_id").notNull().references(() => isoDocuments.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull(),
+  version: integer("version").notNull(),
+  status: text("status").notNull(),
+  changedBy: text("changed_by"),
+  changeSummary: text("change_summary"),
+  content: text("content"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const hazards = pgTable("hazards", {
@@ -40,6 +61,7 @@ export const hazards = pgTable("hazards", {
 
 export const incidents = pgTable("incidents", {
   id: serial("id").primaryKey(),
+  userId: text("user_id"),
   title: text("title").notNull(),
   description: text("description"),
   severity: text("severity").default("minor"),
@@ -62,6 +84,7 @@ export const trainingPrograms = pgTable("training_programs", {
 
 export const internalAudits = pgTable("internal_audits", {
   id: serial("id").primaryKey(),
+  userId: text("user_id"),
   scope: text("scope").notNull(),
   auditor: text("auditor"),
   date: timestamp("date"),
@@ -72,9 +95,12 @@ export const internalAudits = pgTable("internal_audits", {
 
 export const auditFindings = pgTable("audit_findings", {
   id: serial("id").primaryKey(),
+  userId: text("user_id"),
   auditId: integer("audit_id"),
   description: text("description").notNull(),
   category: text("category"),
+  standard: text("standard"),
+  context: text("context"),
   severity: text("severity").default("minor"),
   status: text("status").default("open"),
   dueDate: timestamp("due_date"),
@@ -84,11 +110,18 @@ export const auditFindings = pgTable("audit_findings", {
 
 export const correctiveActions = pgTable("corrective_actions", {
   id: serial("id").primaryKey(),
+  userId: text("user_id"),
   findingId: integer("finding_id"),
+  sourceType: text("source_type"),
+  sourceId: text("source_id"),
   action: text("action").notNull(),
   responsible: text("responsible"),
   dueDate: timestamp("due_date"),
   status: text("status").default("pending"),
+  evidence: text("evidence"),
+  effectivenessCheck: text("effectiveness_check"),
+  effectivenessStatus: text("effectiveness_status").default("pending"),
+  verifiedAt: timestamp("verified_at"),
   completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -194,14 +227,20 @@ export const risks = pgTable("risks", {
   code: text("code"),
   name: text("name").notNull(),
   description: text("description"),
+  context: text("context"),
+  standard: text("standard"),
   category: text("category"),
   probability: integer("probability"),
   impact: integer("impact"),
   riskLevel: text("risk_level"),
+  controls: text("controls"),
   owner: text("owner"),
   status: text("status").default("open"),
   mitigation: text("mitigation"),
   dueDate: timestamp("due_date"),
+  residualProbability: integer("residual_probability"),
+  residualImpact: integer("residual_impact"),
+  residualRiskLevel: text("residual_risk_level"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -283,6 +322,44 @@ export const activityLogs = pgTable("activity_logs", {
   entityId: integer("entity_id"),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const kpis = pgTable("kpis", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  code: text("code").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  category: text("category").notNull(),
+  unit: text("unit"),
+  target: real("target").notNull(),
+  direction: text("direction").default("higher_better"),
+  owner: text("owner"),
+  status: text("status").default("active"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const kpiMeasurements = pgTable("kpi_measurements", {
+  id: serial("id").primaryKey(),
+  kpiId: integer("kpi_id").notNull().references(() => kpis.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull(),
+  period: text("period").notNull(),
+  actual: real("actual").notNull(),
+  notes: text("notes"),
+  recordedBy: text("recorded_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const managementReviews = pgTable("management_reviews", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  title: text("title").notNull(),
+  period: text("period"),
+  status: text("status").default("planned"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export type User = typeof users.$inferSelect;

@@ -1,331 +1,444 @@
+import { useState, useMemo } from "react";
 import { Link } from "wouter";
+import { 
+  Plus, Search, ChevronDown, ChevronRight, X, AlertCircle, 
+  CheckCircle2, Clock, ShieldAlert, BarChart3, Target, Calendar
+} from "lucide-react";
+import { 
+  useFindings, useActions, useCreateFinding, useUpdateFinding, 
+  useCreateAction, useUpdateAction, Finding, CorrectiveAction 
+} from "@/hooks/use-qms";
+import { ErrorState, LoadingState, EmptyState } from "@/components/qms-states";
 
-const audits = [
-  { id: "AUD-2026-012", type: "Internal", scope: "ISO 9001:2015", dept: "Produksi", status: "Completed", date: "2026-03-10", auditor: "Tim Audit Internal", findings: 5, major: 1, minor: 4, obs: 0 },
-  { id: "AUD-2026-011", type: "Internal", scope: "ISO 14001:2015", dept: "K3L", status: "Completed", date: "2026-03-08", auditor: "Tim Audit Internal", findings: 3, major: 0, minor: 2, obs: 1 },
-  { id: "AUD-2026-010", type: "External", scope: "Surveillance", dept: "All", status: "Scheduled", date: "2026-03-25", auditor: "Bureau Veritas", findings: 0, major: 0, minor: 0, obs: 0 },
-  { id: "AUD-2026-009", type: "Internal", scope: "ISO 45001:2018", dept: "HRD", status: "Completed", date: "2026-02-28", auditor: "Tim Audit Internal", findings: 4, major: 2, minor: 2, obs: 0 },
-  { id: "AUD-2026-008", type: "Internal", scope: "ISO 27001:2022", dept: "IT", status: "Draft Report", date: "2026-02-20", auditor: "Tim Audit Internal", findings: 6, major: 1, minor: 3, obs: 2 },
-];
-
-const upcomingAudits = [
-  { id: 1, type: "Internal", scope: "ISO 9001", dept: "QC Lab", date: "2026-03-20", auditor: "Ahmad, Budi" },
-  { id: 2, type: "External", scope: "Surveillance", dept: "All", date: "2026-03-25", auditor: "Bureau Veritas" },
-  { id: 3, type: "Internal", scope: "ISO 14001", dept: "Produksi", date: "2026-04-05", auditor: "hmad, Siti" },
-  { id: 4, type: "Internal", scope: "ISO 45001", dept: "Maintenance", date: "2026-04-12", auditor: "Budi, Joko" },
-];
-
-const findingsByDept = [
-  { dept: "Produksi", major: 3, minor: 5, obs: 2 },
-  { dept: "QC", major: 1, minor: 4, obs: 1 },
-  { dept: "HRD", major: 2, minor: 3, obs: 0 },
-  { dept: "IT", major: 1, minor: 3, obs: 2 },
-  { dept: "K3L", major: 0, minor: 2, obs: 1 },
-];
-
-const statusColors: Record<string, string> = {
-  "Completed": "bg-green-500/20 text-green-400",
-  "Scheduled": "bg-blue-500/20 text-blue-400",
-  "In Progress": "bg-yellow-500/20 text-yellow-400",
-  "Draft Report": "bg-purple-500/20 text-purple-400",
-  "Open": "bg-red-500/20 text-red-400",
-};
+function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, onClose: () => void, title: string, children: React.ReactNode }) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-neutral-900 border border-neutral-700 rounded-xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between p-4 border-b border-neutral-800 bg-neutral-900/50">
+          <h2 className="text-lg font-semibold text-white">{title}</h2>
+          <button onClick={onClose} className="text-neutral-400 hover:text-white transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-6 overflow-y-auto">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AuditManagementPage() {
+  const { data: findings, isLoading: isLoadingFindings, error: findingsError, refetch: refetchFindings } = useFindings();
+  const { data: actions, isLoading: isLoadingActions, error: actionsError } = useActions();
+
+  const createFinding = useCreateFinding();
+  const updateFinding = useUpdateFinding();
+  const createAction = useCreateAction();
+  const updateAction = useUpdateAction();
+
+  const [isAddFindingOpen, setIsAddFindingOpen] = useState(false);
+  const [selectedFindingId, setSelectedFindingId] = useState<string | number | null>(null);
+  const [isAddActionOpen, setIsAddActionOpen] = useState(false);
+  const [actionSourceFindingId, setActionSourceFindingId] = useState<string | number | null>(null);
+
+  const stats = useMemo(() => {
+    if (!findings) return { total: 0, open: 0, closed: 0, closureRate: 0, major: 0, minor: 0, obs: 0 };
+    const total = findings.length;
+    const closed = findings.filter(f => f.status === "closed").length;
+    const open = total - closed;
+    const major = findings.filter(f => f.category === "major").length;
+    const minor = findings.filter(f => f.category === "minor").length;
+    const obs = findings.filter(f => f.category === "obs").length;
+    return {
+      total,
+      open,
+      closed,
+      closureRate: total ? Math.round((closed / total) * 100) : 0,
+      major,
+      minor,
+      obs
+    };
+  }, [findings]);
+
+  if (isLoadingFindings || isLoadingActions) return <LoadingState />;
+  if (findingsError) return <ErrorState error={findingsError} onRetry={refetchFindings} />;
+  
+  const handleCreateFinding = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    createFinding.mutate({
+      description: fd.get("description") as string,
+      category: fd.get("category") as string,
+      standard: fd.get("standard") as string,
+      context: fd.get("context") as string,
+      severity: fd.get("severity") as string,
+      status: "open",
+      dueDate: fd.get("dueDate") as string,
+    }, {
+      onSuccess: () => setIsAddFindingOpen(false)
+    });
+  };
+
+  const handleCreateAction = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!actionSourceFindingId) return;
+    const fd = new FormData(e.currentTarget);
+    createAction.mutate({
+      findingId: actionSourceFindingId,
+      sourceType: "finding",
+      sourceId: actionSourceFindingId,
+      action: fd.get("action") as string,
+      responsible: fd.get("responsible") as string,
+      dueDate: fd.get("dueDate") as string,
+      status: "pending"
+    }, {
+      onSuccess: () => setIsAddActionOpen(false)
+    });
+  };
+
   return (
-    <main className="min-h-screen bg-neutral-900 text-white">
-      <header className="border-b border-neutral-800 bg-neutral-900/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/" className="text-neutral-400 hover:text-white transition-colors">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </Link>
-              <div>
-                <h1 className="text-xl font-semibold">Manajemen Audit</h1>
-                <p className="text-sm text-neutral-400">Audit Management System (ISO 19011)</p>
-              </div>
+    <main className="min-h-[100dvh] bg-neutral-950 text-white">
+      <header className="border-b border-neutral-800 bg-neutral-950/80 backdrop-blur-md sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/" className="text-neutral-400 hover:text-white transition-colors">
+              <ChevronRight className="w-5 h-5 rotate-180" />
+            </Link>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight">Audit & Findings</h1>
+              <p className="text-sm text-neutral-400">Live QMS Action Tracking</p>
             </div>
-            <div className="flex gap-2">
-              <Link href="/audit/rencana" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors">
-                + Rencana Audit
-              </Link>
-              <Link href="/audit/finding" className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg text-sm font-medium transition-colors">
-                Findings
-              </Link>
-            </div>
+          </div>
+          <div className="flex gap-3">
+            <button 
+              onClick={() => setIsAddFindingOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-[0_0_15px_rgba(37,99,235,0.2)]"
+            >
+              <Plus className="w-4 h-4" /> Add Finding
+            </button>
           </div>
         </div>
       </header>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-          <div className="bg-neutral-800 rounded-lg border border-neutral-700 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-neutral-400">Total Audit</p>
-                <p className="text-2xl font-bold">24</p>
-              </div>
-              <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-neutral-800 rounded-lg border border-neutral-700 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-neutral-400">Open Findings</p>
-                <p className="text-2xl font-bold text-red-400">8</p>
-              </div>
-              <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-neutral-800 rounded-lg border border-neutral-700 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-neutral-400">Closed</p>
-                <p className="text-2xl font-bold text-green-400">16</p>
-              </div>
-              <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-neutral-800 rounded-lg border border-neutral-700 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-neutral-400">Closure Rate</p>
-                <p className="text-2xl font-bold text-yellow-400">67%</p>
-              </div>
-              <div className="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-neutral-800 rounded-lg border border-neutral-700 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-neutral-400">Next Audit</p>
-                <p className="text-2xl font-bold text-purple-400">7d</p>
-              </div>
-              <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-            </div>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <StatCard title="Total Findings" value={stats.total} icon={<Target />} color="text-blue-400" bg="bg-blue-500/10" />
+          <StatCard title="Open Issues" value={stats.open} icon={<AlertCircle />} color="text-red-400" bg="bg-red-500/10" />
+          <StatCard title="Closed" value={stats.closed} icon={<CheckCircle2 />} color="text-green-400" bg="bg-green-500/10" />
+          <StatCard title="Closure Rate" value={`${stats.closureRate}%`} icon={<BarChart3 />} color="text-yellow-400" bg="bg-yellow-500/10" />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          {/* Upcoming Audits */}
-          <div className="bg-neutral-800 rounded-lg border border-neutral-700 p-6">
-            <h2 className="text-lg font-semibold mb-4">Upcoming Audits</h2>
-            <div className="space-y-3">
-              {upcomingAudits.map((audit) => (
-                <div key={audit.id} className="p-3 bg-neutral-700/50 rounded-lg">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-medium text-sm">{audit.scope}</span>
-                    <span className={`px-2 py-0.5 rounded text-xs ${audit.type === "External" ? "bg-red-500/20 text-red-400" : "bg-blue-500/20 text-blue-400"}`}>
-                      {audit.type}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-xs text-neutral-400">
-                    <span>{audit.dept}</span>
-                    <span>{audit.date}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Findings by Department */}
-          <div className="bg-neutral-800 rounded-lg border border-neutral-700 p-6">
-            <h2 className="text-lg font-semibold mb-4">Findings by Department</h2>
-            <div className="space-y-3">
-              {findingsByDept.map((item) => (
-                <div key={item.dept}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span>{item.dept}</span>
-                    <span className="text-neutral-400">{item.major + item.minor} findings</span>
-                  </div>
-                  <div className="flex gap-1">
-                    <div className="h-2 bg-red-500 rounded" style={{ width: `${(item.major / 10) * 100}%` }}></div>
-                    <div className="h-2 bg-yellow-500 rounded" style={{ width: `${(item.minor / 10) * 100}%` }}></div>
-                    <div className="h-2 bg-blue-500 rounded" style={{ width: `${(item.obs / 10) * 100}%` }}></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-4 mt-4 text-xs">
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-red-500 rounded"></div>
-                <span>Major</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-yellow-500 rounded"></div>
-                <span>Minor</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-blue-500 rounded"></div>
-                <span>Observation</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Audit Program */}
-          <div className="bg-neutral-800 rounded-lg border border-neutral-700 p-6">
-            <h2 className="text-lg font-semibold mb-4">Audit Program 2026</h2>
-            <div className="space-y-3">
-              {[
-                { month: "Q1", internal: 8, external: 1, target: 10 },
-                { month: "Q2", internal: 6, external: 1, target: 8 },
-                { month: "Q3", internal: 6, external: 1, target: 8 },
-                { month: "Q4", internal: 4, external: 2, target: 6 },
-              ].map((q) => (
-                <div key={q.month}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span>{q.month}</span>
-                    <span className="text-neutral-400">{q.internal + q.external} / {q.target}</span>
-                  </div>
-                  <div className="h-2 bg-neutral-700 rounded-full overflow-hidden">
-                    <div className="flex h-full">
-                      <div className="bg-blue-500" style={{ width: `${(q.internal / q.target) * 100}%` }}></div>
-                      <div className="bg-red-500" style={{ width: `${(q.external / q.target) * 100}%` }}></div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-4 mt-4 text-xs">
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-blue-500 rounded"></div>
-                <span>Internal</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-red-500 rounded"></div>
-                <span>External</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Audit List */}
-        <div className="bg-neutral-800 rounded-lg border border-neutral-700">
-          <div className="p-6 border-b border-neutral-700 flex justify-between items-center">
-            <h2 className="text-lg font-semibold">Audit Register</h2>
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden shadow-xl">
+          <div className="p-5 border-b border-neutral-800 flex items-center justify-between bg-neutral-900/50">
+            <h2 className="text-lg font-semibold text-white">Active Findings Register</h2>
             <div className="flex gap-2">
-              <select className="px-3 py-1.5 bg-neutral-700 border border-neutral-600 rounded-lg text-sm">
-                <option>All Types</option>
-                <option>Internal</option>
-                <option>External</option>
-              </select>
-              <select className="px-3 py-1.5 bg-neutral-700 border border-neutral-600 rounded-lg text-sm">
-                <option>All Status</option>
-                <option>Completed</option>
-                <option>Scheduled</option>
-                <option>In Progress</option>
-              </select>
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
+                <input 
+                  type="text" 
+                  placeholder="Search findings..." 
+                  className="pl-9 pr-4 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-white placeholder-neutral-500 w-64"
+                />
+              </div>
             </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-neutral-750">
-                <tr className="text-left text-sm text-neutral-400">
-                  <th className="p-4">Audit ID</th>
-                  <th className="p-4">Type</th>
-                  <th className="p-4">Scope</th>
-                  <th className="p-4">Dept</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4">Date</th>
-                  <th className="p-4">Auditor</th>
-                  <th className="p-4">Major</th>
-                  <th className="p-4">Minor</th>
-                  <th className="p-4">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {audits.map((audit) => (
-                  <tr key={audit.id} className="border-t border-neutral-700 hover:bg-neutral-750">
-                    <td className="p-4 font-mono text-sm">{audit.id}</td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded text-xs ${audit.type === "External" ? "bg-red-500/20 text-red-400" : "bg-blue-500/20 text-blue-400"}`}>
-                        {audit.type}
-                      </span>
-                    </td>
-                    <td className="p-4 text-sm">{audit.scope}</td>
-                    <td className="p-4 text-sm">{audit.dept}</td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded text-xs ${statusColors[audit.status]}`}>
-                        {audit.status}
-                      </span>
-                    </td>
-                    <td className="p-4 text-sm">{audit.date}</td>
-                    <td className="p-4 text-sm">{audit.auditor}</td>
-                    <td className="p-4 text-sm">
-                      <span className="text-red-400 font-medium">{audit.major}</span>
-                    </td>
-                    <td className="p-4 text-sm">
-                      <span className="text-yellow-400 font-medium">{audit.minor}</span>
-                    </td>
-                    <td className="p-4">
-                      <button className="text-blue-400 hover:text-blue-300 text-sm">View</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+          
+          {(!findings || findings.length === 0) ? (
+            <EmptyState 
+              title="No Findings Logged" 
+              description="Your audit register is empty. Start by logging a new finding."
+              action={
+                <button 
+                  onClick={() => setIsAddFindingOpen(true)}
+                  className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Log First Finding
+                </button>
+              }
+            />
+          ) : (
+            <div className="divide-y divide-neutral-800/50">
+              {findings.map((finding) => {
+                const isExpanded = selectedFindingId === finding.id;
+                const findingActions = actions?.filter(
+                  a => String(a.sourceId) === String(finding.id) && a.sourceType === "finding"
+                ) || [];
+                const canClose = findingActions.length > 0 && findingActions.every(
+                  action =>
+                    action.status === "completed" &&
+                    action.effectivenessStatus === "verified" &&
+                    Boolean(action.evidence?.trim()) &&
+                    Boolean(action.effectivenessCheck?.trim())
+                );
+                
+                return (
+                  <div key={finding.id} className="group flex flex-col transition-colors hover:bg-neutral-800/20">
+                    <div 
+                      className="p-5 flex items-center gap-4 cursor-pointer select-none"
+                      onClick={() => setSelectedFindingId(isExpanded ? null : finding.id)}
+                    >
+                      <div className="flex-shrink-0">
+                        {isExpanded ? <ChevronDown className="w-5 h-5 text-blue-400" /> : <ChevronRight className="w-5 h-5 text-neutral-500 group-hover:text-blue-400" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-1">
+                          <h3 className="text-base font-medium text-white truncate">{finding.description}</h3>
+                          <span className={`px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold ${
+                            finding.category === 'major' ? 'bg-red-500/20 text-red-400 border border-red-500/20' : 
+                            finding.category === 'minor' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/20' : 
+                            'bg-blue-500/20 text-blue-400 border border-blue-500/20'
+                          }`}>{finding.category}</span>
+                          <span className={`px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold ${
+                            finding.status === 'closed' ? 'bg-green-500/10 text-green-400' : 'bg-neutral-800 text-neutral-300'
+                          }`}>{finding.status}</span>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-neutral-500">
+                          <span className="flex items-center gap-1"><ShieldAlert className="w-3.5 h-3.5" /> {finding.standard}</span>
+                          <span className="flex items-center gap-1"><Target className="w-3.5 h-3.5" /> {finding.context}</span>
+                          <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> Due: {finding.dueDate || 'N/A'}</span>
+                          <span className="text-neutral-600 font-mono">{String(finding.id).split('-')[0]}</span>
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0 text-right">
+                        <div className="text-sm font-medium text-neutral-300">
+                          {findingActions.length} CAPA{findingActions.length !== 1 ? 's' : ''}
+                        </div>
+                        <div className="text-xs text-neutral-500">
+                          {findingActions.filter(a => a.status === 'completed').length} completed
+                        </div>
+                      </div>
+                    </div>
 
-        {/* ISO 19011 Process */}
-        <div className="mt-8 p-6 bg-neutral-800 rounded-lg border border-neutral-700">
-          <h2 className="text-lg font-semibold mb-4">ISO 19011:2018 Audit Process</h2>
-          <div className="flex flex-col md:flex-row items-center gap-4">
-            <div className="flex-1 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg text-center">
-              <div className="w-12 h-12 bg-blue-500 rounded-full mx-auto mb-2 flex items-center justify-center font-bold">1</div>
-              <p className="text-sm font-medium">Program Audit</p>
+                    {isExpanded && (
+                      <div className="px-14 pb-5 pt-2 bg-neutral-900/30">
+                        <div className="border border-neutral-800 rounded-lg bg-neutral-950 p-4">
+                          <div className="flex items-center justify-between mb-4">
+                            <h4 className="text-sm font-semibold text-white flex items-center gap-2">
+                              <AlertCircle className="w-4 h-4 text-blue-400" /> Corrective & Preventive Actions (CAPA)
+                            </h4>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActionSourceFindingId(finding.id);
+                                setIsAddActionOpen(true);
+                              }}
+                              className="px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded text-xs font-medium transition-colors border border-neutral-700"
+                            >
+                              + Add Action
+                            </button>
+                          </div>
+                          
+                          {findingActions.length === 0 ? (
+                            <div className="text-center py-6 text-sm text-neutral-500 border border-neutral-800 border-dashed rounded bg-neutral-900/50">
+                              No corrective actions defined yet.
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {findingActions.map(action => (
+                                <div key={action.id} className="flex flex-col md:flex-row gap-4 p-3 bg-neutral-900 border border-neutral-800 rounded-md">
+                                  <div className="flex-1">
+                                    <p className="text-sm text-neutral-200 mb-2">{action.action}</p>
+                                    <div className="flex items-center gap-3 text-xs text-neutral-500">
+                                      <span className="px-2 py-0.5 bg-neutral-800 rounded">Resp: <span className="text-neutral-300">{action.responsible}</span></span>
+                                      <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Due: {action.dueDate}</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-col gap-2 min-w-[140px]">
+                                    <select 
+                                      value={action.status}
+                                      onChange={(e) => updateAction.mutate({ id: action.id, data: { status: e.target.value as CorrectiveAction["status"] } })}
+                                      className="w-full bg-neutral-950 border border-neutral-800 rounded px-2 py-1 text-xs text-white focus:border-blue-500 focus:outline-none"
+                                    >
+                                      <option value="pending">Status: Pending</option>
+                                      <option value="in_progress">Status: In Progress</option>
+                                      <option value="completed">Status: Completed</option>
+                                    </select>
+                                    <select 
+                                      value={action.effectivenessStatus || 'pending'}
+                                      onChange={(e) => updateAction.mutate({ id: action.id, data: { effectivenessStatus: e.target.value as NonNullable<CorrectiveAction["effectivenessStatus"]> } })}
+                                      className="w-full bg-neutral-950 border border-neutral-800 rounded px-2 py-1 text-xs text-white focus:border-blue-500 focus:outline-none"
+                                    >
+                                      <option value="pending">Effectiveness: Unverified</option>
+                                      <option value="verified">Effectiveness: Verified</option>
+                                      <option value="ineffective">Effectiveness: Ineffective</option>
+                                    </select>
+                                    <textarea
+                                      defaultValue={action.evidence || ""}
+                                      onBlur={(e) => {
+                                        if (e.target.value !== (action.evidence || "")) {
+                                          updateAction.mutate({ id: action.id, data: { evidence: e.target.value } });
+                                        }
+                                      }}
+                                      placeholder="Bukti penyelesaian"
+                                      className="w-full bg-neutral-950 border border-neutral-800 rounded px-2 py-1.5 text-xs text-white focus:border-blue-500 focus:outline-none"
+                                      rows={2}
+                                    />
+                                    <textarea
+                                      defaultValue={action.effectivenessCheck || ""}
+                                      onBlur={(e) => {
+                                        if (e.target.value !== (action.effectivenessCheck || "")) {
+                                          updateAction.mutate({ id: action.id, data: { effectivenessCheck: e.target.value } });
+                                        }
+                                      }}
+                                      placeholder="Catatan verifikasi efektivitas"
+                                      className="w-full bg-neutral-950 border border-neutral-800 rounded px-2 py-1.5 text-xs text-white focus:border-blue-500 focus:outline-none"
+                                      rows={2}
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          
+                          <div className="mt-4 pt-4 border-t border-neutral-800 flex justify-end gap-3">
+                            {finding.status === 'open' ? (
+                              <button 
+                                 disabled={!canClose}
+                                 title={canClose ? "Close finding" : "Complete all CAPAs with evidence and verified effectiveness first"}
+                                onClick={() => updateFinding.mutate({ id: finding.id, data: { status: 'closed' } })}
+                                 className="px-4 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 rounded text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                              >
+                                Mark Finding as Closed
+                              </button>
+                            ) : (
+                              <button 
+                                onClick={() => updateFinding.mutate({ id: finding.id, data: { status: 'open' } })}
+                                className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded text-sm font-medium transition-colors"
+                              >
+                                Reopen Finding
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-            <div className="w-8 h-0.5 bg-neutral-600 hidden md:block"></div>
-            <div className="flex-1 p-4 bg-green-500/10 border border-green-500/30 rounded-lg text-center">
-              <div className="w-12 h-12 bg-green-500 rounded-full mx-auto mb-2 flex items-center justify-center font-bold">2</div>
-              <p className="text-sm font-medium">Pelaksanaan Audit</p>
-            </div>
-            <div className="w-8 h-0.5 bg-neutral-600 hidden md:block"></div>
-            <div className="flex-1 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-center">
-              <div className="w-12 h-12 bg-yellow-500 rounded-full mx-auto mb-2 flex items-center justify-center font-bold">3</div>
-              <p className="text-sm font-medium">Temu Finding</p>
-            </div>
-            <div className="w-8 h-0.5 bg-neutral-600 hidden md:block"></div>
-            <div className="flex-1 p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-center">
-              <div className="w-12 h-12 bg-red-500 rounded-full mx-auto mb-2 flex items-center justify-center font-bold">4</div>
-              <p className="text-sm font-medium">Corrective Action</p>
-            </div>
-            <div className="w-8 h-0.5 bg-neutral-600 hidden md:block"></div>
-            <div className="flex-1 p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg text-center">
-              <div className="w-12 h-12 bg-purple-500 rounded-full mx-auto mb-2 flex items-center justify-center font-bold">5</div>
-              <p className="text-sm font-medium">Tinjauan & Close</p>
-            </div>
-          </div>
+          )}
         </div>
       </div>
+
+      <Modal isOpen={isAddFindingOpen} onClose={() => setIsAddFindingOpen(false)} title="Log New Audit Finding">
+        <form onSubmit={handleCreateFinding} className="flex flex-col gap-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-1">Finding Description</label>
+            <textarea 
+              name="description" required rows={3}
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              placeholder="Describe the finding clearly..."
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">Category</label>
+              <select name="category" required className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <option value="minor">Minor Non-conformity</option>
+                <option value="major">Major Non-conformity</option>
+                <option value="obs">Observation</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">Severity</label>
+              <select name="severity" required className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">Standard / Clause</label>
+              <input 
+                name="standard" type="text" required
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                placeholder="e.g. ISO 9001:2015 Cl 8.5"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">Context / Location</label>
+              <input 
+                name="context" type="text" required
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                placeholder="e.g. Site A - Phase 2"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-1">Target Due Date</label>
+            <input 
+              name="dueDate" type="date" required
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+          <div className="mt-4 flex justify-end gap-3 pt-4 border-t border-neutral-800">
+            <button type="button" onClick={() => setIsAddFindingOpen(false)} className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg text-sm font-medium transition-colors">
+              Cancel
+            </button>
+            <button type="submit" disabled={createFinding.isPending} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
+              {createFinding.isPending ? 'Logging...' : 'Log Finding'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={isAddActionOpen} onClose={() => setIsAddActionOpen(false)} title="Create Corrective Action (CAPA)">
+        <form onSubmit={handleCreateAction} className="flex flex-col gap-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-1">Action Description</label>
+            <textarea 
+              name="action" required rows={3}
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              placeholder="Describe the corrective action steps..."
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">Responsible Person/Role</label>
+              <input 
+                name="responsible" type="text" required
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                placeholder="e.g. Project Manager"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">Target Due Date</label>
+              <input 
+                name="dueDate" type="date" required
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end gap-3 pt-4 border-t border-neutral-800">
+            <button type="button" onClick={() => setIsAddActionOpen(false)} className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg text-sm font-medium transition-colors">
+              Cancel
+            </button>
+            <button type="submit" disabled={createAction.isPending} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
+              {createAction.isPending ? 'Creating...' : 'Create Action'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </main>
+  );
+}
+
+function StatCard({ title, value, icon, color, bg }: { title: string, value: string | number, icon: React.ReactNode, color: string, bg: string }) {
+  return (
+    <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 shadow-sm">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm font-medium text-neutral-400 mb-1">{title}</p>
+          <p className="text-2xl font-bold text-white">{value}</p>
+        </div>
+        <div className={`w-10 h-10 ${bg} rounded-lg flex items-center justify-center ${color}`}>
+          {icon}
+        </div>
+      </div>
+    </div>
   );
 }

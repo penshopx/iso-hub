@@ -11,10 +11,11 @@ export default function Iso14001Page() {
       fetch('/api/iso/documents').then(r => r.json()).catch(() => []),
       fetch('/api/iso/hazards').then(r => r.json()).catch(() => []),
     ]).then(([docs, hazards]) => {
+      const documents = Array.isArray(docs) ? docs : docs?.data;
       setData({
-        documents: Array.isArray(docs) ? docs.length : 0,
+        documents: Array.isArray(documents) ? documents.length : 0,
         aspects: Array.isArray(hazards) ? hazards.length : 0,
-        monitoring: Array.isArray(docs) ? docs.filter(d => d.status === 'approved').length : 0,
+        monitoring: Array.isArray(documents) ? documents.filter(d => d.status === 'approved').length : 0,
       });
     });
   }, []);

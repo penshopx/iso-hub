@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from "express";
+import { boundedRiskScore, classifyRisk, normalizeRiskStatus } from "@workspace/api-zod";
 import { db } from "@workspace/db";
 import { risks, vendors, opcTasks, facilitators, services, bookings, knowledgeArticles } from "@workspace/db";
 import { desc, sql, eq, like, or, and } from "drizzle-orm";
@@ -68,22 +69,32 @@ router.post("/v1/risks", async (req, res) => {
     if (!userId) return;
 
     const body = req.body;
-    const probability = Number(body.probability) || 1;
-    const impact = Number(body.impact) || 1;
-    const riskScore = probability * impact;
-    const riskLevel = riskScore >= 15 ? "critical" : riskScore >= 9 ? "high" : riskScore >= 4 ? "medium" : "low";
+    const probability = boundedRiskScore(body.probability);
+    const impact = boundedRiskScore(body.impact);
+    const riskLevel = classifyRisk(probability, impact);
+    const residualProbability = boundedRiskScore(body.residualProbability, probability);
+    const residualImpact = boundedRiskScore(body.residualImpact, impact);
+    const residualRiskLevel = classifyRisk(residualProbability, residualImpact);
 
     const [risk] = await db.insert(risks).values({
       userId,
+      code: body.code || `R-${Date.now().toString(36).toUpperCase()}`,
       name: body.name,
       description: body.description,
+      context: body.context,
+      standard: body.standard,
       category: body.category,
       probability,
       impact,
       riskLevel,
+      controls: body.controls,
       owner: body.owner,
-      status: "open",
+      status: normalizeRiskStatus(body.status),
       mitigation: body.mitigation,
+      dueDate: body.dueDate ? new Date(body.dueDate) : undefined,
+      residualProbability,
+      residualImpact,
+      residualRiskLevel,
     }).returning();
     res.status(201).json({ success: true, data: risk });
   } catch (error) {
@@ -101,12 +112,54 @@ router.get("/v1/risks/:id", async (req, res) => {
       eq(risks.userId, userId),
     ));
     if (!risk) {
-      res.status(404).json({ error: "Not found" });
+      res.status(404).json({ success: false, error: "Risk not found" });
       return;
     }
     res.json({ success: true, data: risk });
   } catch (error) {
     res.status(500).json({ success: false, error: "Failed to fetch risk" });
+  }
+});
+
+router.patch("/v1/risks/:id", async (req, res) => {
+  try {
+    const userId = getAuthenticatedUserId(req, res);
+    if (!userId) return;
+    const id = Number(req.params.id);
+    const [current] = await db.select().from(risks).where(and(eq(risks.id, id), eq(risks.userId, userId)));
+    if (!current) {
+      res.status(404).json({ success: false, error: "Risk not found" });
+      return;
+    }
+    const probability = boundedRiskScore(req.body.probability, current.probability || 1);
+    const impact = boundedRiskScore(req.body.impact, current.impact || 1);
+    const calculatedLevel = classifyRisk(probability, impact);
+    const residualProbability = boundedRiskScore(req.body.residualProbability, current.residualProbability || probability);
+    const residualImpact = boundedRiskScore(req.body.residualImpact, current.residualImpact || impact);
+    const residualRiskLevel = classifyRisk(residualProbability, residualImpact);
+    const [risk] = await db.update(risks).set({
+      ...(req.body.name !== undefined ? { name: req.body.name } : {}),
+      ...(req.body.description !== undefined ? { description: req.body.description } : {}),
+      ...(req.body.context !== undefined ? { context: req.body.context } : {}),
+      ...(req.body.standard !== undefined ? { standard: req.body.standard } : {}),
+      ...(req.body.category !== undefined ? { category: req.body.category } : {}),
+      probability,
+      impact,
+      riskLevel: calculatedLevel,
+      ...(req.body.controls !== undefined ? { controls: req.body.controls } : {}),
+      ...(req.body.owner !== undefined ? { owner: req.body.owner } : {}),
+      ...(req.body.status !== undefined ? { status: normalizeRiskStatus(req.body.status, normalizeRiskStatus(current.status)) } : {}),
+      ...(req.body.mitigation !== undefined ? { mitigation: req.body.mitigation } : {}),
+      ...(req.body.dueDate !== undefined ? { dueDate: req.body.dueDate ? new Date(req.body.dueDate) : null } : {}),
+      residualProbability,
+      residualImpact,
+      residualRiskLevel,
+      updatedAt: new Date(),
+    }).where(and(eq(risks.id, id), eq(risks.userId, userId))).returning();
+    res.json({ success: true, data: risk });
+  } catch (error) {
+    req.log.error({ error }, "Failed to update risk");
+    res.status(500).json({ success: false, error: "Failed to update risk" });
   }
 });
 

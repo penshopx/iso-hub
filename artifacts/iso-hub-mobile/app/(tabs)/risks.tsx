@@ -27,6 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/lib/auth';
 import { OfflineBanner } from '@/components/OfflineBanner';
+import { boundedRiskScore, classifyRisk } from '@workspace/api-zod';
 
 const LEVEL_COLORS: Record<string, string> = {
   critical: '#ef4444',
@@ -155,9 +156,8 @@ export default function RisksScreen() {
           method: 'POST',
           body: request.body,
         });
-        const probability = Number(body.probability) || 1;
-        const impact = Number(body.impact) || 1;
-        const score = probability * impact;
+        const probability = boundedRiskScore(body.probability);
+        const impact = boundedRiskScore(body.impact);
         const localItem: Risk = {
           id: -Date.now(),
           name: body.name,
@@ -165,7 +165,7 @@ export default function RisksScreen() {
           category: body.category || null,
           probability,
           impact,
-          riskLevel: score >= 15 ? 'critical' : score >= 9 ? 'high' : score >= 4 ? 'medium' : 'low',
+          riskLevel: classifyRisk(probability, impact),
           owner: body.owner || null,
           status: 'open',
           mitigation: body.mitigation || null,

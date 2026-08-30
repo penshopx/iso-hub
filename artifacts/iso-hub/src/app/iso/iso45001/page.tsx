@@ -12,10 +12,12 @@ export default function Iso45001Page() {
       fetch('/api/iso/hazards').then(r => r.json()).catch(() => []),
       fetch('/api/iso/incidents').then(r => r.json()).catch(() => []),
     ]).then(([docs, hazards, incidents]) => {
+      const documents = Array.isArray(docs) ? docs : docs?.data;
+      const incidentRows = Array.isArray(incidents) ? incidents : incidents?.data;
       setData({
-        documents: Array.isArray(docs) ? docs.length : 0,
+        documents: Array.isArray(documents) ? documents.length : 0,
         hazards: Array.isArray(hazards) ? hazards.length : 0,
-        incidents: Array.isArray(incidents) ? incidents.length : 0,
+        incidents: Array.isArray(incidentRows) ? incidentRows.length : 0,
       });
     });
   }, []);

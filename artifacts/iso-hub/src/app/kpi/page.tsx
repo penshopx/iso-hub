@@ -1,247 +1,528 @@
+import { useState, useMemo } from "react";
 import { Link } from "wouter";
+import {
+  Activity, AlertTriangle,
+  CheckCircle2, Plus, Target,
+  ChevronRight, ArrowUpRight, TrendingUp, X
+} from "lucide-react";
+import {
+  useKPIs, useRecordMeasurement, useManagementReviews,
+  useCreateManagementReview, useFindings, useCreateAction, useCreateKPI
+} from "@/hooks/use-qms";
+import { ErrorState, LoadingState, EmptyState } from "@/components/qms-states";
 
-const kpis = [
-  { id: "KPI-001", name: "Customer Satisfaction Score", unit: "%", target: 85, actual: 87, status: "Above", trend: "+2%", category: "Customer" },
-  { id: "KPI-002", name: "On-time Delivery Rate", unit: "%", target: 98, actual: 96.5, status: "Below", trend: "-1.5%", category: "Operation" },
-  { id: "KPI-003", name: "Defect Rate (PPM)", unit: "ppm", target: 500, actual: 420, status: "Above", trend: "-80", category: "Quality" },
-  { id: "KPI-004", name: "Employee Training Hours", unit: "hrs", target: 40, actual: 35, status: "Below", trend: "-5", category: "People" },
-  { id: "KPI-005", name: "Incident Rate (LTIF)", unit: "", target: 0.5, actual: 0.42, status: "Above", trend: "-0.08", category: "Safety" },
-  { id: "KPI-006", name: "Energy Consumption Reduction", unit: "%", target: 10, actual: 12, status: "Above", trend: "+2%", category: "Environment" },
-  { id: "KPI-007", name: "Supplier Performance", unit: "%", target: 90, actual: 92, status: "Above", trend: "+2%", category: "Supply Chain" },
-  { id: "KPI-008", name: "Audit Findings Closure", unit: "%", target: 100, actual: 67, status: "Below", trend: "-33%", category: "Compliance" },
-];
-
-const performanceByMonth = [
-  { month: "Jan", quality: 85, safety: 90, delivery: 88, env: 82 },
-  { month: "Feb", quality: 87, safety: 88, delivery: 90, env: 85 },
-  { month: "Mar", quality: 89, safety: 92, delivery: 92, env: 88 },
-];
-
-const bscPerspectives = [
-  { name: "Financial", score: 82, color: "bg-blue-500", icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
-  { name: "Customer", score: 87, color: "bg-green-500", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" },
-  { name: "Internal Process", score: 78, color: "bg-yellow-500", icon: "M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" },
-  { name: "Learning & Growth", score: 75, color: "bg-purple-500", icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" },
-];
+function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, onClose: () => void, title: string, children: React.ReactNode }) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-neutral-900 border border-neutral-700 rounded-xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between p-4 border-b border-neutral-800 bg-neutral-900/50">
+          <h2 className="text-lg font-semibold text-white">{title}</h2>
+          <button onClick={onClose} className="text-neutral-400 hover:text-white transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-6 overflow-y-auto">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function KPIDashboardPage() {
+  const { data: kpis, isLoading: isLoadingKPIs, error: kpiError, refetch: refetchKPIs } = useKPIs();
+  const { data: reviews, isLoading: isLoadingReviews, error: reviewsError } = useManagementReviews();
+  const { data: findings } = useFindings();
+  
+  const recordMeasurement = useRecordMeasurement();
+  const createKPI = useCreateKPI();
+  const createReview = useCreateManagementReview();
+  const createAction = useCreateAction();
+
+  const [activeKpiId, setActiveKpiId] = useState<string | number | null>(null);
+  const [isMeasurementModalOpen, setIsMeasurementModalOpen] = useState(false);
+  const [isKpiModalOpen, setIsKpiModalOpen] = useState(false);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  
+  // CAPA flow for below-target KPIs
+  const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+
+  const stats = useMemo(() => {
+    if (!kpis) return { total: 0, onTrack: 0, below: 0, noData: 0, avgAchievement: 0 };
+    const total = kpis.length;
+    const onTrack = kpis.filter(k => k.status === 'on_track').length;
+    const below = kpis.filter(k => k.status === 'below_target').length;
+    const noData = kpis.filter(k => k.status === 'no_data').length;
+    
+    const kpisWithAch = kpis.filter(k => typeof k.achievement === 'number');
+    const avgAchievement = kpisWithAch.length 
+      ? Math.round(kpisWithAch.reduce((acc, k) => acc + (k.achievement || 0), 0) / kpisWithAch.length) 
+      : 0;
+
+    return { total, onTrack, below, noData, avgAchievement };
+  }, [kpis]);
+
+  if (isLoadingKPIs || isLoadingReviews) return <LoadingState />;
+  if (kpiError) return <ErrorState error={kpiError} onRetry={refetchKPIs} />;
+  
+  const handleRecordMeasurement = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!activeKpiId) return;
+    const fd = new FormData(e.currentTarget);
+    recordMeasurement.mutate({
+      kpiId: activeKpiId,
+      data: {
+        actual: Number(fd.get("actual")),
+        period: fd.get("period") as string,
+        notes: fd.get("notes") as string
+      }
+    }, {
+      onSuccess: () => {
+        setIsMeasurementModalOpen(false);
+        setActiveKpiId(null);
+      }
+    });
+  };
+
+  const handleCreateKPI = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    createKPI.mutate({
+      code: fd.get("code") as string,
+      name: fd.get("name") as string,
+      category: fd.get("category") as string,
+      unit: fd.get("unit") as string,
+      target: Number(fd.get("target")),
+      direction: fd.get("direction") as "higher_better" | "lower_better",
+      owner: fd.get("owner") as string,
+    }, {
+      onSuccess: () => setIsKpiModalOpen(false),
+    });
+  };
+
+  const handleCreateReview = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    createReview.mutate({
+      title: fd.get("title") as string,
+      period: fd.get("period") as string,
+      status: "draft",
+      notes: fd.get("notes") as string
+    }, {
+      onSuccess: () => setIsReviewModalOpen(false)
+    });
+  };
+
+  const handleCreateActionForKPI = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const sourceId = fd.get("findingId") as string;
+    
+    if (!sourceId) return;
+    
+    createAction.mutate({
+      findingId: sourceId,
+      sourceType: "finding",
+      sourceId: sourceId,
+      action: fd.get("action") as string,
+      responsible: fd.get("responsible") as string,
+      dueDate: fd.get("dueDate") as string,
+      status: "pending"
+    }, {
+      onSuccess: () => setIsActionModalOpen(false)
+    });
+  };
+
+  const openActionModal = () => {
+    setIsActionModalOpen(true);
+  };
+
   return (
-    <main className="min-h-screen bg-neutral-900 text-white">
-      <header className="border-b border-neutral-800 bg-neutral-900/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/" className="text-neutral-400 hover:text-white transition-colors">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </Link>
-              <div>
-                <h1 className="text-xl font-semibold">KPI & Performance</h1>
-                <p className="text-sm text-neutral-400">Key Performance Indicators Dashboard</p>
-              </div>
+    <main className="min-h-[100dvh] bg-neutral-950 text-white">
+      <header className="border-b border-neutral-800 bg-neutral-950/80 backdrop-blur-md sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/" className="text-neutral-400 hover:text-white transition-colors">
+              <ChevronRight className="w-5 h-5 rotate-180" />
+            </Link>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight">Performance & KPIs</h1>
+              <p className="text-sm text-neutral-400">Construction QMS Metrics</p>
             </div>
-            <div className="flex gap-2">
-              <select className="px-3 py-1.5 bg-neutral-700 border border-neutral-600 rounded-lg text-sm">
-                <option>Q1 2026</option>
-                <option>Q4 2025</option>
-                <option>Q3 2025</option>
-              </select>
-              <button className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors">
-                Export
-              </button>
-            </div>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setIsKpiModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              <Plus className="w-4 h-4" /> KPI Baru
+            </button>
           </div>
         </div>
       </header>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* BSC Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          {bscPerspectives.map((perspective) => (
-            <div key={perspective.name} className="bg-neutral-800 rounded-lg border border-neutral-700 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`w-10 h-10 ${perspective.color} rounded-lg flex items-center justify-center`}>
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={perspective.icon} />
-                  </svg>
-                </div>
-                <span className={`text-2xl font-bold ${perspective.score >= 80 ? "text-green-400" : perspective.score >= 70 ? "text-yellow-400" : "text-red-400"}`}>
-                  {perspective.score}%
-                </span>
-              </div>
-              <p className="font-medium">{perspective.name}</p>
-              <div className="mt-2 h-2 bg-neutral-700 rounded-full overflow-hidden">
-                <div className={`h-full ${perspective.color} rounded-full`} style={{ width: `${perspective.score}%` }}></div>
-              </div>
-            </div>
-          ))}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <StatCard title="Total KPIs" value={stats.total} icon={<Activity />} color="text-blue-400" bg="bg-blue-500/10" />
+          <StatCard title="On Track" value={stats.onTrack} icon={<CheckCircle2 />} color="text-green-400" bg="bg-green-500/10" />
+          <StatCard title="Below Target" value={stats.below} icon={<AlertTriangle />} color="text-red-400" bg="bg-red-500/10" />
+          <StatCard title="Avg Achievement" value={`${stats.avgAchievement}%`} icon={<Target />} color="text-amber-400" bg="bg-amber-500/10" />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          {/* Performance Trend */}
-          <div className="lg:col-span-2 bg-neutral-800 rounded-lg border border-neutral-700 p-6">
-            <h2 className="text-lg font-semibold mb-4">Performance Trend</h2>
-            <div className="h-64 flex items-end gap-4">
-              {performanceByMonth.map((month) => (
-                <div key={month.month} className="flex-1 flex gap-2 items-end">
-                  <div className="flex-1 bg-blue-500 rounded-t" style={{ height: `${month.quality}%` }}></div>
-                  <div className="flex-1 bg-green-500 rounded-t" style={{ height: `${month.safety}%` }}></div>
-                  <div className="flex-1 bg-yellow-500 rounded-t" style={{ height: `${month.delivery}%` }}></div>
-                  <div className="flex-1 bg-purple-500 rounded-t" style={{ height: `${month.env}%` }}></div>
-                </div>
-              ))}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="lg:col-span-2 bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden shadow-xl flex flex-col">
+            <div className="p-5 border-b border-neutral-800 flex items-center justify-between bg-neutral-900/50">
+              <h2 className="text-lg font-semibold text-white">KPI Register</h2>
             </div>
-            <div className="flex justify-center gap-6 mt-4">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-blue-500 rounded"></div>
-                <span className="text-xs">Quality</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-green-500 rounded"></div>
-                <span className="text-xs">Safety</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-yellow-500 rounded"></div>
-                <span className="text-xs">Delivery</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-purple-500 rounded"></div>
-                <span className="text-xs">Environment</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Overall Score */}
-          <div className="bg-neutral-800 rounded-lg border border-neutral-700 p-6">
-            <h2 className="text-lg font-semibold mb-4">Overall Performance</h2>
-            <div className="flex items-center justify-center mb-6">
-              <div className="relative w-40 h-40">
-                <svg className="w-full h-full transform -rotate-90">
-                  <circle cx="80" cy="80" r="70" fill="none" stroke="#374151" strokeWidth="12" />
-                  <circle cx="80" cy="80" r="70" fill="none" stroke="#22c55e" strokeWidth="12" strokeDasharray="439.8" strokeDashoffset="87.96" strokeLinecap="round" />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-4xl font-bold">80%</span>
-                  <span className="text-sm text-neutral-400">Target: 85%</span>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-neutral-400">Above Target</span>
-                <span className="text-green-400">5 KPIs</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-neutral-400">Below Target</span>
-                <span className="text-red-400">3 KPIs</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* KPI Table */}
-        <div className="bg-neutral-800 rounded-lg border border-neutral-700">
-          <div className="p-6 border-b border-neutral-700 flex justify-between items-center">
-            <h2 className="text-lg font-semibold">KPI Performance</h2>
-            <div className="flex gap-2">
-              <input 
-                type="text" 
-                placeholder="Search KPIs..." 
-                className="px-3 py-1.5 bg-neutral-700 border border-neutral-600 rounded-lg text-sm"
+            
+            {(!kpis || kpis.length === 0) ? (
+              <EmptyState
+                title="Belum Ada KPI"
+                description="Buat KPI pertama untuk mulai mencatat target dan hasil aktual."
+                action={<button onClick={() => setIsKpiModalOpen(true)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium">Buat KPI</button>}
               />
-              <select className="px-3 py-1.5 bg-neutral-700 border border-neutral-600 rounded-lg text-sm">
-                <option>All Categories</option>
-                <option>Quality</option>
-                <option>Safety</option>
-                <option>Operation</option>
-                <option>Customer</option>
-              </select>
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-neutral-750">
-                <tr className="text-left text-sm text-neutral-400">
-                  <th className="p-4">KPI ID</th>
-                  <th className="p-4">KPI Name</th>
-                  <th className="p-4">Category</th>
-                  <th className="p-4">Target</th>
-                  <th className="p-4">Actual</th>
-                  <th className="p-4">Achievement</th>
-                  <th className="p-4">Trend</th>
-                  <th className="p-4">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {kpis.map((kpi) => {
-                  const achievement = (kpi.actual / kpi.target) * 100;
-                  return (
-                    <tr key={kpi.id} className="border-t border-neutral-700 hover:bg-neutral-750">
-                      <td className="p-4 font-mono text-sm">{kpi.id}</td>
-                      <td className="p-4 font-medium">{kpi.name}</td>
-                      <td className="p-4">
-                        <span className="px-2 py-1 bg-neutral-700 rounded text-xs">{kpi.category}</span>
-                      </td>
-                      <td className="p-4">{kpi.target}{kpi.unit}</td>
-                      <td className="p-4 font-semibold">{kpi.actual}{kpi.unit}</td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-20 h-2 bg-neutral-700 rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full ${achievement >= 100 ? "bg-green-500" : "bg-red-500"}`} style={{ width: `${Math.min(achievement, 100)}%` }}></div>
-                          </div>
-                          <span className="text-sm">{achievement.toFixed(1)}%</span>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <span className={`text-sm ${kpi.trend.startsWith("+") || kpi.trend.startsWith("-") && !kpi.trend.includes("0") ? (kpi.status === "Above" ? "text-green-400" : "text-red-400") : "text-neutral-400"}`}>
-                          {kpi.trend}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <span className={`px-2 py-1 rounded text-xs ${kpi.status === "Above" ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
-                          {kpi.status}
-                        </span>
-                      </td>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-neutral-800 bg-neutral-900/30 text-xs uppercase tracking-wider text-neutral-500">
+                      <th className="px-5 py-3 font-semibold">KPI Details</th>
+                      <th className="px-5 py-3 font-semibold">Target vs Actual</th>
+                      <th className="px-5 py-3 font-semibold w-1/4">Achievement</th>
+                      <th className="px-5 py-3 font-semibold">Status</th>
+                      <th className="px-5 py-3 font-semibold text-right">Action</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-800">
+                    {kpis.map((kpi) => (
+                      <tr key={kpi.id} className="hover:bg-neutral-800/20 transition-colors">
+                        <td className="px-5 py-4">
+                          <div className="font-medium text-white mb-0.5">{kpi.name}</div>
+                          <div className="text-xs text-neutral-500 flex gap-2">
+                            <span className="font-mono text-neutral-400">{kpi.code}</span>
+                            <span>•</span>
+                            <span>{kpi.category}</span>
+                            <span>•</span>
+                            <span>Owner: {kpi.owner}</span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="text-sm">
+                            <span className="text-neutral-400">Target: </span> 
+                            <span className="font-medium text-white">{kpi.target} {kpi.unit}</span>
+                          </div>
+                          <div className="text-sm">
+                            <span className="text-neutral-400">Actual: </span> 
+                            <span className="font-medium text-white">{kpi.actual !== undefined ? `${kpi.actual} ${kpi.unit}` : '-'}</span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4">
+                          {kpi.achievement !== undefined ? (
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1 h-2 bg-neutral-800 rounded-full overflow-hidden">
+                                <div 
+                                  className={`h-full rounded-full ${kpi.status === 'on_track' ? 'bg-green-500' : 'bg-red-500'}`}
+                                  style={{ width: `${Math.min(Math.max(kpi.achievement, 0), 100)}%` }}
+                                />
+                              </div>
+                              <span className="text-xs font-medium min-w-[3ch] text-right">{Math.round(kpi.achievement)}%</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-neutral-600">No data</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className={`px-2 py-1 rounded text-[10px] uppercase tracking-wider font-bold ${
+                            kpi.status === 'on_track' ? 'bg-green-500/10 text-green-400' :
+                            kpi.status === 'below_target' ? 'bg-red-500/10 text-red-400' :
+                            'bg-neutral-800 text-neutral-400'
+                          }`}>
+                            {kpi.status.replace('_', ' ')}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          <button 
+                            onClick={() => { setActiveKpiId(kpi.id); setIsMeasurementModalOpen(true); }}
+                            className="p-2 hover:bg-neutral-800 text-neutral-400 hover:text-blue-400 rounded-lg transition-colors inline-flex"
+                            title="Record Measurement"
+                          >
+                            <TrendingUp className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-        </div>
 
-        {/* Action Items */}
-        <div className="mt-8 p-6 bg-yellow-900/30 border border-yellow-500/30 rounded-lg">
-          <h2 className="text-lg font-semibold mb-4">Action Required</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 bg-neutral-800 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                <span className="font-medium">On-time Delivery</span>
-              </div>
-              <p className="text-sm text-neutral-400">Actual 96.5% vs Target 98%</p>
-              <button className="mt-2 text-sm text-blue-400 hover:text-blue-300">View Analysis →</button>
+          <div className="flex flex-col gap-6">
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 shadow-xl">
+              <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-500" /> Needs Attention
+              </h2>
+              {stats.below === 0 ? (
+                <div className="text-sm text-neutral-400 text-center py-6">All KPIs are on track.</div>
+              ) : (
+                <div className="space-y-4">
+                  {kpis?.filter(k => k.status === 'below_target').map(kpi => (
+                    <div key={kpi.id} className="p-4 bg-red-500/5 border border-red-500/20 rounded-lg">
+                      <h3 className="font-medium text-red-100 text-sm mb-1">{kpi.name}</h3>
+                      <p className="text-xs text-red-400/80 mb-3">Actual {kpi.actual}{kpi.unit} vs Target {kpi.target}{kpi.unit}</p>
+                      <button 
+                        onClick={openActionModal}
+                        className="w-full py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded text-xs font-medium transition-colors"
+                      >
+                        Address Issue via CAPA
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="p-4 bg-neutral-800 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                <span className="font-medium">Training Hours</span>
+
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 shadow-xl flex-1">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-white">Management Review</h2>
+                <button 
+                  onClick={() => setIsReviewModalOpen(true)}
+                  className="p-1.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
               </div>
-              <p className="text-sm text-neutral-400">Actual 35 hrs vs Target 40 hrs</p>
-              <button className="mt-2 text-sm text-blue-400 hover:text-blue-300">View Analysis →</button>
-            </div>
-            <div className="p-4 bg-neutral-800 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                <span className="font-medium">Audit Closure</span>
-              </div>
-              <p className="text-sm text-neutral-400">Actual 67% vs Target 100%</p>
-              <button className="mt-2 text-sm text-blue-400 hover:text-blue-300">View Analysis →</button>
+              
+              {!reviews || reviews.length === 0 ? (
+                <div className="text-sm text-neutral-500 text-center py-6">No reviews scheduled.</div>
+              ) : (
+                <div className="space-y-3">
+                  {reviews.map(review => (
+                    <div key={review.id} className="p-3 bg-neutral-950 border border-neutral-800 rounded-lg">
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="font-medium text-sm text-white">{review.title}</span>
+                        <span className={`px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold ${
+                          review.status === 'completed' ? 'bg-green-500/10 text-green-400' :
+                          review.status === 'in_review' ? 'bg-blue-500/10 text-blue-400' :
+                          'bg-neutral-800 text-neutral-400'
+                        }`}>{review.status.replace('_', ' ')}</span>
+                      </div>
+                      <div className="text-xs text-neutral-500">Period: {review.period}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      <Modal isOpen={isMeasurementModalOpen} onClose={() => { setIsMeasurementModalOpen(false); setActiveKpiId(null); }} title="Record Measurement">
+        <form onSubmit={handleRecordMeasurement} className="flex flex-col gap-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-1">Measured Value</label>
+            <input 
+              name="actual" type="number" step="any" required
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              placeholder="Enter numerical value"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-1">Periode Pengukuran</label>
+            <input 
+              name="period" type="text" required
+              defaultValue={new Date().toISOString().slice(0, 7)}
+              placeholder="Contoh: 2026-08 atau Q3 2026"
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-1">Notes / Analysis</label>
+            <textarea 
+              name="notes" rows={3}
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              placeholder="Explain variations or context..."
+            />
+          </div>
+          <div className="mt-4 flex justify-end gap-3 pt-4 border-t border-neutral-800">
+            <button type="button" onClick={() => { setIsMeasurementModalOpen(false); setActiveKpiId(null); }} className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg text-sm font-medium transition-colors">
+              Cancel
+            </button>
+            <button type="submit" disabled={recordMeasurement.isPending} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
+              {recordMeasurement.isPending ? 'Saving...' : 'Save Record'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={isKpiModalOpen} onClose={() => setIsKpiModalOpen(false)} title="Buat KPI">
+        <form onSubmit={handleCreateKPI} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-1">Kode</label>
+            <input name="code" required className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm" placeholder="QMS-01" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-1">Kategori</label>
+            <input name="category" required className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm" placeholder="Mutu" />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-neutral-300 mb-1">Nama KPI</label>
+            <input name="name" required className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-1">Target</label>
+            <input name="target" type="number" step="any" required className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-1">Satuan</label>
+            <input name="unit" required className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm" placeholder="%, hari, kasus" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-1">Arah Target</label>
+            <select name="direction" className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm">
+              <option value="higher_better">Lebih tinggi lebih baik</option>
+              <option value="lower_better">Lebih rendah lebih baik</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-1">Owner</label>
+            <input name="owner" required className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <div className="sm:col-span-2 flex justify-end gap-3 pt-4 border-t border-neutral-800">
+            <button type="button" onClick={() => setIsKpiModalOpen(false)} className="px-4 py-2 bg-neutral-800 rounded-lg text-sm">Batal</button>
+            <button type="submit" disabled={createKPI.isPending} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium disabled:opacity-50">
+              {createKPI.isPending ? "Menyimpan..." : "Simpan KPI"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={isReviewModalOpen} onClose={() => setIsReviewModalOpen(false)} title="Schedule Management Review">
+        <form onSubmit={handleCreateReview} className="flex flex-col gap-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-1">Review Title</label>
+            <input 
+              name="title" type="text" required
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              placeholder="e.g. Q1 2026 QMS Review"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-1">Evaluation Period</label>
+            <input 
+              name="period" type="text" required
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              placeholder="e.g. Jan - Mar 2026"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-1">Agenda Notes (Optional)</label>
+            <textarea 
+              name="notes" rows={3}
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              placeholder="Include below-target KPIs for discussion..."
+            />
+          </div>
+          <div className="mt-4 flex justify-end gap-3 pt-4 border-t border-neutral-800">
+            <button type="button" onClick={() => setIsReviewModalOpen(false)} className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg text-sm font-medium transition-colors">
+              Cancel
+            </button>
+            <button type="submit" disabled={createReview.isPending} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
+              {createReview.isPending ? 'Saving...' : 'Create Review'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={isActionModalOpen} onClose={() => setIsActionModalOpen(false)} title="Address KPI Issue">
+        {(!findings || findings.length === 0) ? (
+          <div className="flex flex-col items-center justify-center p-8 text-center bg-neutral-950 border border-neutral-800 rounded-lg">
+            <AlertTriangle className="w-8 h-8 text-amber-500 mb-3" />
+            <h3 className="text-base font-semibold text-white mb-2">No Eligible Sources Found</h3>
+            <p className="text-sm text-neutral-400 mb-6 max-w-sm">
+              Corrective actions must be linked to a specific finding or risk. You currently have no findings in the system.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setIsActionModalOpen(false)} className="px-4 py-2 bg-neutral-800 text-white rounded font-medium">Cancel</button>
+              <Link href="/audit" className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded font-medium inline-flex items-center gap-2">
+                Go to Audit Findings <ArrowUpRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleCreateActionForKPI} className="flex flex-col gap-4">
+            <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-lg flex gap-3 mb-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
+              <p className="text-xs text-amber-200/80 leading-relaxed">
+                To address a below-target KPI, you must attach the corrective action to an existing finding. Select the relevant finding below.
+              </p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">Select Source Finding</label>
+              <select 
+                name="findingId" required 
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">-- Select a finding --</option>
+                {findings.filter(f => f.status === 'open').map(f => (
+                  <option key={f.id} value={f.id}>{f.description} ({f.category})</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">Action Required</label>
+              <textarea 
+                name="action" required rows={3}
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                placeholder="Describe how to fix the KPI underperformance..."
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-300 mb-1">Responsible Role</label>
+                <input 
+                  name="responsible" type="text" required
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-300 mb-1">Due Date</label>
+                <input 
+                  name="dueDate" type="date" required
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-3 pt-4 border-t border-neutral-800">
+              <button type="button" onClick={() => setIsActionModalOpen(false)} className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg text-sm font-medium transition-colors">
+                Cancel
+              </button>
+              <button type="submit" disabled={createAction.isPending} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
+                {createAction.isPending ? 'Linking Action...' : 'Create CAPA'}
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
     </main>
+  );
+}
+
+function StatCard({ title, value, icon, color, bg }: { title: string, value: string | number, icon: React.ReactNode, color: string, bg: string }) {
+  return (
+    <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 shadow-sm">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm font-medium text-neutral-400 mb-1">{title}</p>
+          <p className="text-2xl font-bold text-white">{value}</p>
+        </div>
+        <div className={`w-10 h-10 ${bg} rounded-lg flex items-center justify-center ${color}`}>
+          {icon}
+        </div>
+      </div>
+    </div>
   );
 }

@@ -219,13 +219,26 @@ const sampleArticles = [
   },
 ];
 
+type LibraryArticle = {
+  id: string | number;
+  title: string;
+  excerpt?: string;
+  category?: string;
+  isoStandard?: string;
+  viewCount?: number;
+  slug?: string;
+};
+
 export default function PerpustakaanPage() {
-  const [articles, setArticles] = useState([]);
+  const [articles, setArticles] = useState<LibraryArticle[]>([]);
 
   useEffect(() => {
     fetch('/api/iso/documents')
       .then(r => r.json())
-      .then(d => { if (Array.isArray(d)) setArticles(d); })
+      .then(d => {
+        const documents = Array.isArray(d) ? d : d?.data;
+        if (Array.isArray(documents)) setArticles(documents);
+      })
       .catch(() => {});
   }, []);
 
@@ -290,7 +303,7 @@ export default function PerpustakaanPage() {
             >
               <div className="p-6">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${getCategoryColor(article.category)} text-white`}>
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${getCategoryColor(article.category ?? null)} text-white`}>
                     {article.category}
                   </span>
                   {article.isoStandard && (

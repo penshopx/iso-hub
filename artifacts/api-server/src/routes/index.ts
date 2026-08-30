@@ -6,6 +6,7 @@ import certificationsRouter from "./certifications";
 import trainingRouter from "./training";
 import v1Router from "./v1";
 import authRouter from "./auth";
+import qmsRouter from "./qms";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(auditsRouter);
 router.use(certificationsRouter);
 router.use(trainingRouter);
 router.use(v1Router);
+router.use(qmsRouter);
 
 export default router;
