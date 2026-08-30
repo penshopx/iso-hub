@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   Platform,
+  Alert,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useColors } from '@/hooks/useColors';
@@ -14,6 +15,7 @@ import { apiFetch, DashboardStats } from '@/lib/api';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/lib/auth';
 
 interface MenuItem {
   title: string;
@@ -43,6 +45,7 @@ export default function DashboardScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { user, logout } = useAuth();
 
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['dashboard'],
@@ -81,11 +84,26 @@ export default function DashboardScreen() {
             <Text style={[s.logoSub, { color: colors.mutedForeground }]}>Platform ISO Indonesia</Text>
           </View>
         </View>
+        <TouchableOpacity
+          testID="logout-button"
+          accessibilityRole="button"
+          accessibilityLabel="Keluar dari akun"
+          onPress={() => {
+            Alert.alert('Keluar dari akun?', 'Anda perlu masuk kembali untuk membuka data organisasi.', [
+              { text: 'Batal', style: 'cancel' },
+              { text: 'Keluar', style: 'destructive', onPress: logout },
+            ]);
+          }}
+        >
+          <Ionicons name="log-out-outline" size={22} color={colors.mutedForeground} />
+        </TouchableOpacity>
       </View>
 
       {/* Welcome */}
       <View style={s.welcomeBlock}>
-        <Text style={[s.welcomeTitle, { color: colors.foreground }]}>Selamat Datang</Text>
+        <Text style={[s.welcomeTitle, { color: colors.foreground }]}>
+          Selamat Datang{user?.firstName ? `, ${user.firstName}` : ''}
+        </Text>
         <Text style={[s.welcomeSub, { color: colors.mutedForeground }]}>
           Platform lengkap manajemen ISO
         </Text>
@@ -149,7 +167,7 @@ export default function DashboardScreen() {
 const styles = (colors: ReturnType<typeof useColors>) =>
   StyleSheet.create({
     container: { flex: 1 },
-    header: { paddingHorizontal: 20, paddingBottom: 8 },
+    header: { paddingHorizontal: 20, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     logoRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     logoIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
     logoTitle: { fontSize: 18, fontWeight: '700', fontFamily: 'Inter_700Bold' },

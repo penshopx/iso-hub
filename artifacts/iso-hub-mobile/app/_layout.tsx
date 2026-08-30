@@ -11,10 +11,12 @@ import {
   Inter_700Bold,
   useFonts,
 } from '@expo-google-fonts/inter';
-import { Stack } from 'expo-router';
+import { Redirect, Stack, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { useNotifications } from '@/hooks/useNotifications';
+import { AuthProvider, useAuth } from '@/lib/auth';
+import { useColors } from '@/hooks/useColors';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -28,17 +30,40 @@ const queryClient = new QueryClient({
   },
 });
 
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-
-  // Request notification permissions on first launch and wire up reminders/alerts
+function AuthenticatedEffects() {
   useNotifications();
+  return null;
+}
+
+function RootLayoutNav() {
+  const colors = useColors();
+  const segments = useSegments();
+  const { isAuthenticated, isLoading, user } = useAuth();
+
+  useEffect(() => {
+    queryClient.clear();
+  }, [user?.id]);
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  const isOnLogin = segments[0] === 'login';
+  if (!isAuthenticated && !isOnLogin) return <Redirect href="/login" />;
+  if (isAuthenticated && isOnLogin) return <Redirect href="/" />;
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-    </Stack>
+    <>
+      {isAuthenticated ? <AuthenticatedEffects /> : null}
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      </Stack>
+    </>
   );
 }
 
@@ -62,11 +87,13 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <KeyboardProvider>
-              <RootLayoutNav />
-            </KeyboardProvider>
-          </GestureHandlerRootView>
+          <AuthProvider>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+              <KeyboardProvider>
+                <RootLayoutNav />
+              </KeyboardProvider>
+            </GestureHandlerRootView>
+          </AuthProvider>
         </QueryClientProvider>
       </ErrorBoundary>
     </SafeAreaProvider>

@@ -1,0 +1,1 @@
+- [Expo OIDC browser testing](expo-oidc-browser-testing.md) — the test issuer may block Expo web discovery via CORS; distinguish harness failure from native auth behavior.

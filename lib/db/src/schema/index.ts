@@ -1,4 +1,5 @@
 import { pgTable, text, integer, real, serial, boolean, timestamp } from "drizzle-orm/pg-core";
+export * from "./auth";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -189,6 +190,7 @@ export const knowledgeArticles = pgTable("knowledge_articles", {
 
 export const risks = pgTable("risks", {
   id: serial("id").primaryKey(),
+  userId: text("user_id"),
   code: text("code"),
   name: text("name").notNull(),
   description: text("description"),
@@ -206,6 +208,7 @@ export const risks = pgTable("risks", {
 
 export const vendors = pgTable("vendors", {
   id: serial("id").primaryKey(),
+  userId: text("user_id"),
   code: text("code"),
   name: text("name").notNull(),
   category: text("category"),

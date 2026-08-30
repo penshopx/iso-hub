@@ -1,19 +1,33 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import { risks, vendors, opcTasks, facilitators, services, bookings, knowledgeArticles } from "@workspace/db";
 import { desc, sql, eq, like, or, and } from "drizzle-orm";
 
 const router = Router();
 
+function getAuthenticatedUserId(
+  req: Request,
+  res: Response,
+): string | null {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ success: false, error: "Unauthorized" });
+    return null;
+  }
+  return req.user.id;
+}
+
 // Dashboard stats
 router.get("/v1/dashboard", async (req, res) => {
   try {
+    const userId = getAuthenticatedUserId(req, res);
+    if (!userId) return;
+
     const [facCount] = await db.select({ count: sql<number>`count(*)` }).from(facilitators);
     const [artCount] = await db.select({ count: sql<number>`count(*)` }).from(knowledgeArticles);
     const [svcCount] = await db.select({ count: sql<number>`count(*)` }).from(services);
     const [bkgCount] = await db.select({ count: sql<number>`count(*)` }).from(bookings);
-    const [riskCount] = await db.select({ count: sql<number>`count(*)` }).from(risks);
-    const [vendorCount] = await db.select({ count: sql<number>`count(*)` }).from(vendors);
+    const [riskCount] = await db.select({ count: sql<number>`count(*)` }).from(risks).where(eq(risks.userId, userId));
+    const [vendorCount] = await db.select({ count: sql<number>`count(*)` }).from(vendors).where(eq(vendors.userId, userId));
 
     res.json({
       stats: {
@@ -33,12 +47,15 @@ router.get("/v1/dashboard", async (req, res) => {
 // Risks
 router.get("/v1/risks", async (req, res) => {
   try {
+    const userId = getAuthenticatedUserId(req, res);
+    if (!userId) return;
+
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
     const offset = (page - 1) * limit;
 
-    const data = await db.select().from(risks).orderBy(desc(risks.createdAt)).limit(limit).offset(offset);
-    const [total] = await db.select({ count: sql<number>`count(*)` }).from(risks);
+    const data = await db.select().from(risks).where(eq(risks.userId, userId)).orderBy(desc(risks.createdAt)).limit(limit).offset(offset);
+    const [total] = await db.select({ count: sql<number>`count(*)` }).from(risks).where(eq(risks.userId, userId));
     res.json({ success: true, data, total: Number(total?.count || 0), page, limit });
   } catch (error) {
     res.status(500).json({ success: false, error: "Failed to fetch risks" });
@@ -47,6 +64,9 @@ router.get("/v1/risks", async (req, res) => {
 
 router.post("/v1/risks", async (req, res) => {
   try {
+    const userId = getAuthenticatedUserId(req, res);
+    if (!userId) return;
+
     const body = req.body;
     const probability = Number(body.probability) || 1;
     const impact = Number(body.impact) || 1;
@@ -54,6 +74,7 @@ router.post("/v1/risks", async (req, res) => {
     const riskLevel = riskScore >= 15 ? "critical" : riskScore >= 9 ? "high" : riskScore >= 4 ? "medium" : "low";
 
     const [risk] = await db.insert(risks).values({
+      userId,
       name: body.name,
       description: body.description,
       category: body.category,
@@ -72,8 +93,17 @@ router.post("/v1/risks", async (req, res) => {
 
 router.get("/v1/risks/:id", async (req, res) => {
   try {
-    const [risk] = await db.select().from(risks).where(eq(risks.id, Number(req.params.id)));
-    if (!risk) return res.status(404).json({ error: "Not found" });
+    const userId = getAuthenticatedUserId(req, res);
+    if (!userId) return;
+
+    const [risk] = await db.select().from(risks).where(and(
+      eq(risks.id, Number(req.params.id)),
+      eq(risks.userId, userId),
+    ));
+    if (!risk) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
     res.json({ success: true, data: risk });
   } catch (error) {
     res.status(500).json({ success: false, error: "Failed to fetch risk" });
@@ -83,12 +113,15 @@ router.get("/v1/risks/:id", async (req, res) => {
 // Vendors
 router.get("/v1/vendors", async (req, res) => {
   try {
+    const userId = getAuthenticatedUserId(req, res);
+    if (!userId) return;
+
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
     const offset = (page - 1) * limit;
 
-    const data = await db.select().from(vendors).orderBy(desc(vendors.createdAt)).limit(limit).offset(offset);
-    const [total] = await db.select({ count: sql<number>`count(*)` }).from(vendors);
+    const data = await db.select().from(vendors).where(eq(vendors.userId, userId)).orderBy(desc(vendors.createdAt)).limit(limit).offset(offset);
+    const [total] = await db.select({ count: sql<number>`count(*)` }).from(vendors).where(eq(vendors.userId, userId));
     res.json({ success: true, data, total: Number(total?.count || 0), page, limit });
   } catch (error) {
     res.status(500).json({ success: false, error: "Failed to fetch vendors" });
@@ -97,8 +130,12 @@ router.get("/v1/vendors", async (req, res) => {
 
 router.post("/v1/vendors", async (req, res) => {
   try {
+    const userId = getAuthenticatedUserId(req, res);
+    if (!userId) return;
+
     const body = req.body;
     const [vendor] = await db.insert(vendors).values({
+      userId,
       name: body.name,
       category: body.category,
       contactPerson: body.contactPerson,
@@ -160,7 +197,10 @@ router.post("/v1/opc/tasks", async (req, res) => {
 router.get("/v1/opc/tasks/:id", async (req, res) => {
   try {
     const [task] = await db.select().from(opcTasks).where(eq(opcTasks.id, Number(req.params.id)));
-    if (!task) return res.status(404).json({ error: "Not found" });
+    if (!task) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
     res.json({ success: true, data: task });
   } catch (error) {
     res.status(500).json({ success: false, error: "Failed to fetch task" });
@@ -211,8 +251,17 @@ router.get("/v1/agents", async (req, res) => {
 router.get("/v1/search", async (req, res) => {
   const q = String(req.query.q || "");
   try {
-    const riskResults = q ? await db.select().from(risks).where(like(risks.name, `%${q}%`)).limit(5) : [];
-    const vendorResults = q ? await db.select().from(vendors).where(like(vendors.name, `%${q}%`)).limit(5) : [];
+    const userId = getAuthenticatedUserId(req, res);
+    if (!userId) return;
+
+    const riskResults = q ? await db.select().from(risks).where(and(
+      eq(risks.userId, userId),
+      like(risks.name, `%${q}%`),
+    )).limit(5) : [];
+    const vendorResults = q ? await db.select().from(vendors).where(and(
+      eq(vendors.userId, userId),
+      like(vendors.name, `%${q}%`),
+    )).limit(5) : [];
     res.json({ success: true, risks: riskResults, vendors: vendorResults });
   } catch (error) {
     res.status(500).json({ success: false, error: "Search failed" });
