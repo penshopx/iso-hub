@@ -9,12 +9,17 @@ import React, {
 } from 'react';
 import * as AuthSession from 'expo-auth-session';
 import * as Crypto from 'expo-crypto';
-import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
+import {
+  deleteAuthStorageItem,
+  getAuthStorageItem,
+  setAuthStorageItem,
+} from '@/lib/auth-storage';
 
 WebBrowser.maybeCompleteAuthSession();
 
 export const AUTH_TOKEN_KEY = 'auth_session_token';
+const AUTH_USER_KEY = 'auth_cached_user';
 const ISSUER_URL =
   process.env.EXPO_PUBLIC_ISSUER_URL ?? 'https://replit.com/oidc';
 
@@ -65,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUser = useCallback(async () => {
     try {
-      const token = await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
+      const token = await getAuthStorageItem(AUTH_TOKEN_KEY);
       if (!token) {
         setUser(null);
         return;
@@ -77,13 +82,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = (await res.json()) as { user?: AuthUser | null };
 
       if (res.ok && data.user) {
+        await setAuthStorageItem(AUTH_USER_KEY, JSON.stringify(data.user));
         setUser(data.user);
       } else {
-        await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
+        await deleteAuthStorageItem(AUTH_TOKEN_KEY);
+        await deleteAuthStorageItem(AUTH_USER_KEY);
         setUser(null);
       }
     } catch {
-      setUser(null);
+      const cachedUser = await getAuthStorageItem(AUTH_USER_KEY);
+      if (cachedUser) {
+        try {
+          setUser(JSON.parse(cachedUser) as AuthUser);
+        } catch {
+          await deleteAuthStorageItem(AUTH_USER_KEY);
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -127,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        await SecureStore.setItemAsync(AUTH_TOKEN_KEY, data.token);
+        await setAuthStorageItem(AUTH_TOKEN_KEY, data.token);
         await fetchUser();
       } catch {
         setUser(null);
@@ -144,7 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      const token = await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
+      const token = await getAuthStorageItem(AUTH_TOKEN_KEY);
       if (token) {
         await fetch(`${getApiBaseUrl()}/api/mobile-auth/logout`, {
           method: 'POST',
@@ -152,7 +169,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
       }
     } finally {
-      await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
+      await deleteAuthStorageItem(AUTH_TOKEN_KEY);
+      await deleteAuthStorageItem(AUTH_USER_KEY);
       setUser(null);
     }
   }, []);

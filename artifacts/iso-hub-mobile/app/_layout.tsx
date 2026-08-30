@@ -17,6 +17,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { useNotifications } from '@/hooks/useNotifications';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { useColors } from '@/hooks/useColors';
+import { OfflineProvider } from '@/lib/offline-context';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -57,13 +58,13 @@ function RootLayoutNav() {
   if (isAuthenticated && isOnLogin) return <Redirect href="/" />;
 
   return (
-    <>
+    <OfflineProvider userId={user?.id ?? null}>
       {isAuthenticated ? <AuthenticatedEffects /> : null}
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
-    </>
+    </OfflineProvider>
   );
 }
 

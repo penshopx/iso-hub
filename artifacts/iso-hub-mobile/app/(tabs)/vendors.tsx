@@ -13,10 +13,14 @@ import {
 } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useColors } from '@/hooks/useColors';
-import { apiFetch, Vendor } from '@/lib/api';
+import { Vendor } from '@/lib/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import { useAuth } from '@/lib/auth';
+import { createWithOfflineQueue, fetchCollection, makeTemporaryId } from '@/lib/offline';
+import { useOfflineStatus } from '@/lib/offline-context';
+import { OfflineStatusBanner } from '@/components/OfflineStatusBanner';
 
 const STATUS_COLORS: Record<string, string> = {
   active: '#22c55e',
@@ -74,6 +78,14 @@ function VendorCard({ vendor, colors }: { vendor: Vendor; colors: ReturnType<typ
           ) : null}
         </View>
       ) : null}
+      {vendor.pendingSync ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 10 }}>
+          <Ionicons name="cloud-upload-outline" size={13} color={colors.primary} />
+          <Text style={{ color: colors.primary, fontSize: 11, fontFamily: 'Inter_500Medium' }}>
+            Menunggu sinkronisasi
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -91,6 +103,8 @@ export default function VendorsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
+  const { user } = useAuth();
+  const { markOnline, markOffline, markQueued } = useOfflineStatus();
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState<AddVendorForm>({
     name: '', category: '', contactPerson: '', email: '', phone: '', status: 'active',
@@ -100,19 +114,60 @@ export default function VendorsScreen() {
   const bottomPad = Platform.OS === 'web' ? 34 : insets.bottom;
 
   const { data, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ['vendors'],
-    queryFn: () => apiFetch<{ data: Vendor[] }>('/v1/vendors').then(r => r.data),
+    queryKey: ['vendors', user?.id],
+    enabled: Boolean(user?.id),
+    queryFn: () => fetchCollection<Vendor>({
+      userId: user!.id,
+      collection: 'vendors',
+      endpoint: '/v1/vendors',
+      onNetworkSuccess: markOnline,
+      onNetworkError: markOffline,
+    }),
   });
 
   const addMutation = useMutation({
-    mutationFn: (body: AddVendorForm) =>
-      apiFetch<{ success: boolean }>('/v1/vendors', { method: 'POST', body: JSON.stringify(body) }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['vendors'] });
+    mutationFn: async (body: AddVendorForm) => {
+      if (!user?.id) throw new Error('User is not authenticated');
+
+      return createWithOfflineQueue<Vendor>({
+        userId: user.id,
+        collection: 'vendors',
+        endpoint: '/v1/vendors',
+        payload: { ...body },
+        optimistic: {
+          id: makeTemporaryId(),
+          name: body.name.trim(),
+          category: body.category || null,
+          contactPerson: body.contactPerson || null,
+          email: body.email || null,
+          phone: body.phone || null,
+          status: body.status || 'active',
+          createdAt: new Date().toISOString(),
+        },
+      });
+    },
+    onSuccess: result => {
+      const queryKey = ['vendors', user?.id];
+      if (result.queued) {
+        markQueued();
+        qc.setQueryData<Vendor[]>(queryKey, current => [
+          result.data,
+          ...(current ?? []).filter(item => item.id !== result.data.id),
+        ]);
+      } else {
+        markOnline();
+        void qc.invalidateQueries({ queryKey });
+      }
       qc.invalidateQueries({ queryKey: ['dashboard'] });
       setShowAdd(false);
       setForm({ name: '', category: '', contactPerson: '', email: '', phone: '', status: 'active' });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (result.queued) {
+        Alert.alert(
+          'Tersimpan di perangkat',
+          'Vendor akan otomatis dikirim ke akun Anda saat koneksi internet kembali.',
+        );
+      }
     },
     onError: () => Alert.alert('Error', 'Gagal menambahkan vendor.'),
   });
@@ -130,6 +185,7 @@ export default function VendorsScreen() {
           <Ionicons name="add" size={22} color="#fff" />
         </TouchableOpacity>
       </View>
+      <OfflineStatusBanner />
 
       {isLoading ? (
         <View style={s.center}><ActivityIndicator color={colors.primary} size="large" /></View>

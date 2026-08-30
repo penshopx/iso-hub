@@ -2,8 +2,8 @@
  * API helper — constructs absolute URLs for the ISO Hub api-server.
  * Uses EXPO_PUBLIC_DOMAIN in native builds; falls back to a relative path on web.
  */
-import * as SecureStore from 'expo-secure-store';
 import { AUTH_TOKEN_KEY } from '@/lib/auth';
+import { getAuthStorageItem } from '@/lib/auth-storage';
 
 function getApiBase(): string {
   const domain = process.env.EXPO_PUBLIC_DOMAIN;
@@ -15,7 +15,7 @@ function getApiBase(): string {
 export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const base = getApiBase();
   const url = `${base}${path}`;
-  const token = await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
+  const token = await getAuthStorageItem(AUTH_TOKEN_KEY);
   const headers = new Headers(options?.headers);
   if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
   if (token) headers.set('Authorization', `Bearer ${token}`);
@@ -51,6 +51,7 @@ export interface Risk {
   status: string;
   mitigation: string | null;
   createdAt: string;
+  pendingSync?: boolean;
 }
 
 export interface Vendor {
@@ -62,6 +63,7 @@ export interface Vendor {
   phone: string | null;
   status: string;
   createdAt: string;
+  pendingSync?: boolean;
 }
 
 export interface AuditTask {
