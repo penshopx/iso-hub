@@ -8,6 +8,7 @@ import { Scene2 } from './video_scenes/Scene2';
 import { Scene3 } from './video_scenes/Scene3';
 import { Scene4 } from './video_scenes/Scene4';
 import { Scene5 } from './video_scenes/Scene5';
+import { Captions } from './Captions';
 
 export const SCENE_DURATIONS: Record<string, number> = {
   hook: 5000,
@@ -187,6 +188,8 @@ export default function VideoTemplate({
         <AnimatePresence mode="sync">
           {SceneComponent && <SceneComponent key={currentSceneKey} />}
         </AnimatePresence>
+
+        <Captions currentSceneKey={currentSceneKey} />
       </div>
 
       <audio
