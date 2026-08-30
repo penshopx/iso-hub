@@ -61,17 +61,24 @@ export default function VideoTemplate({
 
   const SceneComponent = SCENE_COMPONENTS[baseSceneKey];
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const musicRef = useRef<HTMLAudioElement | null>(null);
+  const voiceoverRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.volume = 0.45;
     const targetTime = SCENE_START_SEC[baseSceneKey] ?? 0;
-    if (Math.abs(audio.currentTime - targetTime) > AUDIO_SEEK_EPSILON_SEC) {
-      audio.currentTime = targetTime;
-    }
-    audio.play().catch(() => {});
+    const tracks = [
+      { audio: musicRef.current, volume: 0.18 },
+      { audio: voiceoverRef.current, volume: 0.95 },
+    ];
+
+    tracks.forEach(({ audio, volume }) => {
+      if (!audio) return;
+      audio.volume = volume;
+      if (Math.abs(audio.currentTime - targetTime) > AUDIO_SEEK_EPSILON_SEC) {
+        audio.currentTime = targetTime;
+      }
+      audio.play().catch(() => {});
+    });
   }, [currentSceneKey, baseSceneKey, muted]);
 
   return (
@@ -172,10 +179,21 @@ export default function VideoTemplate({
       </div>
 
       <audio
-        ref={audioRef}
+        ref={musicRef}
         src={`${import.meta.env.BASE_URL}audio/bg_music.mp3`}
         preload="auto"
         autoPlay
+        loop
+        aria-hidden="true"
+        muted={muted}
+      />
+      <audio
+        ref={voiceoverRef}
+        src={`${import.meta.env.BASE_URL}audio/voiceover_id.mp3`}
+        preload="auto"
+        autoPlay
+        loop
+        aria-label="Narasi Bahasa Indonesia"
         muted={muted}
       />
     </>

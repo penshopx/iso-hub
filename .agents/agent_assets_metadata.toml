@@ -6,3 +6,10 @@ id = "zjq-dcdCZR_MpjIchIKHK"
 uri = "file://artifacts/iso-hub-promo/public/audio/bg_music.mp3"
 type = "audio"
 title = "ISO Hub promo background music"
+
+[[outputs]]
+id = "Qc7oMhYnWL72fhY1WUcMQ"
+uri = "file://artifacts/iso-hub-promo/public/audio/voiceover_id.mp3"
+type = "audio"
+title = "iso hub bahasa indonesia voiceover"
+description = "Text-to-speech audio: Standar ISO bukan sekadar dokumen. Ia adalah cara organisasi membangun kepercayaan, mengelola risiko, dan terus bertumbuh. Dengan ISO Hub, semua kebutuhan kepatuhan ada dalam sa…"
