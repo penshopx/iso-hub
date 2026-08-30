@@ -5,7 +5,7 @@
     "filepath": "src/pages/slides/Slide01Cover.tsx",
     "title": "ISO Hub — Cover",
     "description": "Title slide introducing ISO Hub as Indonesia's leading ISO compliance platform.",
-    "speakerNotes": ""
+    "speakerNotes": "Buka dengan positioning ISO Hub sebagai platform compliance ISO untuk Indonesia. Tekankan tiga hal yang disatukan dalam satu tempat: pembuatan dokumen berbasis AI, manajemen risiko, dan pelacakan audit. Slide ini juga memperkenalkan cakupan standar yang didukung, mulai dari ISO 9001 hingga ISO 37001 dan empat standar lainnya."
   },
   {
     "id": "a1b20002-0002-0002-0002-000000000002",
@@ -13,7 +13,7 @@
     "filepath": "src/pages/slides/Slide02Problem.tsx",
     "title": "The Problem",
     "description": "Three core pain points companies face with ISO certification today.",
-    "speakerNotes": ""
+    "speakerNotes": "Mulai dari tiga hambatan yang dirasakan perusahaan: proses sertifikasi yang dapat memakan waktu 12–36 bulan, konsultan berpengalaman yang sulit ditemukan dan tidak transparan harganya, serta ribuan halaman dokumen yang dibuat manual dan rawan revisi. Gunakan slide ini untuk membangun urgensi sebelum masuk ke solusi."
   },
   {
     "id": "a1b20003-0003-0003-0003-000000000003",
@@ -21,7 +21,7 @@
     "filepath": "src/pages/slides/Slide03Solution.tsx",
     "title": "The Solution",
     "description": "ISO Hub's three-pillar platform approach: AI, verified consultants, and management tools.",
-    "speakerNotes": ""
+    "speakerNotes": "ISO Hub menjawab masalah tadi melalui tiga pilar. Lima specialist agents membantu gap analysis, pembuatan dokumen, dan persiapan audit; fasilitator terverifikasi memberi dukungan manusia; dan lebih dari 20 modul menghubungkan risiko, audit, dokumen, KPI, kalibrasi, serta insiden. Pesan utamanya adalah alur dari gap analysis hingga dokumen siap audit berada dalam satu platform."
   },
   {
     "id": "a1b20004-0004-0004-0004-000000000004",
@@ -29,7 +29,7 @@
     "filepath": "src/pages/slides/Slide04AIAgents.tsx",
     "title": "AI Agents",
     "description": "Five specialist AI agents covering every aspect of ISO certification.",
-    "speakerNotes": ""
+    "speakerNotes": "Perkenalkan lima specialist agents: ISO, Legal, Technical, Audit, dan Training. Masing-masing menangani area berbeda, dari klausul dan regulasi Indonesia hingga generator dokumen, persiapan audit, serta learning path. Tekankan bahwa agen-agen ini dikoordinasikan oleh OPC CLAW agar tugas ISO dapat dikerjakan secara paralel."
   },
   {
     "id": "a1b20005-0005-0005-0005-000000000005",
@@ -37,7 +37,7 @@
     "filepath": "src/pages/slides/Slide05RiskAudit.tsx",
     "title": "Risk Management & Audit",
     "description": "Integrated risk management and audit tracking capabilities.",
-    "speakerNotes": ""
+    "speakerNotes": "Di sisi manajemen risiko, ISO Hub menyediakan risk matrix interaktif sesuai ISO 31000, identifikasi dan mitigasi risiko, pelaporan insiden, dashboard KPI, serta manajemen vendor. Di sisi audit, platform mengatur jadwal audit, temuan dan tindakan korektif, checklist otomatis, roadmap sertifikasi, serta direktori badan sertifikasi terverifikasi."
   },
   {
     "id": "a1b20006-0006-0006-0006-000000000006",
@@ -45,7 +45,7 @@
     "filepath": "src/pages/slides/Slide06OPCClaw.tsx",
     "title": "OPC CLAW Orchestration",
     "description": "Multi-agent orchestration system for parallel ISO task execution.",
-    "speakerNotes": ""
+    "speakerNotes": "Jelaskan bagaimana OPC CLAW mengatur alur kerja multi-agent. Pengguna mengirim tugas ISO, orchestrator memecahnya menjadi sub-task, lima agent bekerja paralel, lalu seluruh output dikompilasi menjadi solusi lengkap. Metrik pada slide menyoroti lima active agents, ketersediaan 24/7, dan response time kurang dari dua detik."
   },
   {
     "id": "a1b20007-0007-0007-0007-000000000007",
@@ -53,7 +53,7 @@
     "filepath": "src/pages/slides/Slide07Standards.tsx",
     "title": "Supported Standards",
     "description": "Nine-plus ISO standards supported on one unified platform.",
-    "speakerNotes": ""
+    "speakerNotes": "Tekankan bahwa satu platform mencakup sembilan standar yang ditampilkan: ISO 9001, 14001, 45001, 27001, 37001, 31000, IATF 16949, ISO 22000, dan ISO 50001. Setiap standar diposisikan dengan AI guidance dan template dokumen untuk kebutuhan industri Indonesia."
   },
   {
     "id": "a1b20008-0008-0008-0008-000000000008",
@@ -61,7 +61,7 @@
     "filepath": "src/pages/slides/Slide08Traction.tsx",
     "title": "Platform at a Glance",
     "description": "Key platform metrics and traction indicators.",
-    "speakerNotes": ""
+    "speakerNotes": "Gunakan empat angka ini sebagai ringkasan cakupan platform: 50+ fasilitator terverifikasi, 9+ standar ISO, 100+ artikel dan panduan gratis, serta 20+ modul terintegrasi. Jelaskan bahwa angka-angka tersebut menggambarkan kombinasi dukungan manusia, cakupan standar, pengetahuan, dan tools end-to-end."
   },
   {
     "id": "a1b20009-0009-0009-0009-000000000009",
@@ -69,7 +69,7 @@
     "filepath": "src/pages/slides/Slide09Market.tsx",
     "title": "Market Opportunity",
     "description": "Indonesia's ISO certification market size and key growth drivers.",
-    "speakerNotes": ""
+    "speakerNotes": "Pasar didorong oleh tiga hal yang ditampilkan di slide: persyaratan sertifikasi yang makin penting untuk tender pemerintah dan ekspor, jutaan UKM yang mulai melihat sertifikasi sebagai bagian dari daya saing, serta kesiapan industri mengadopsi AI untuk efisiensi dan kepatuhan. Hubungkan itu dengan lima keunggulan ISO Hub: mulai gratis dengan harga transparan, dibuat untuk Indonesia, AI dan manusia, end-to-end, serta mendukung semua industri dan standar."
   },
   {
     "id": "a1b20010-0010-0010-0010-000000000010",
@@ -77,6 +77,6 @@
     "filepath": "src/pages/slides/Slide10CTA.tsx",
     "title": "Get Started with ISO Hub",
     "description": "Closing call to action and next steps for prospects and investors.",
-    "speakerNotes": ""
+    "speakerNotes": "Tutup dengan ajakan yang konkret: audiens dapat mulai gratis di isohub.id tanpa kartu kredit. Tekankan kombinasi AI dan konsultan manusia, dukungan 9+ standar ISO, serta klaim bantuan konsultan dalam 24 jam sebagaimana tertulis di slide. Arahkan investor atau calon pengguna ke langkah berikutnya setelah presentasi."
   }
 ]
