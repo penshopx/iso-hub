@@ -1,5 +1,21 @@
-import { useMemo, useState } from "react";
-import { Link } from "wouter";
+import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Link, useLocation } from "wouter";
+import {
+  getReadinessSummary,
+  getFilteredChecklist,
+  NEED_TYPES,
+  STANDARDS,
+  type NeedType,
+} from "@/lib/readiness";
+import {
+  getGetProjectReadinessQueryKey,
+  getGetProjectsQueryKey,
+  useGetCurrentAuthUser,
+  useGetProjectReadiness,
+  useGetProjects,
+  useSaveProjectReadiness,
+} from "@workspace/api-client-react";
 import { 
   ArrowLeft, 
   CheckCircle2, 
@@ -17,44 +33,11 @@ import {
   Building2,
   Users,
   ArrowRight,
-  RefreshCw
+  RefreshCw,
+  Save,
+  Loader2,
+  ChevronDown,
 } from "lucide-react";
-
-type NeedType = "tender" | "proyek" | "audit";
-type ChecklistItem = {
-  id: string;
-  standardId: string;
-  label: string;
-  module: string;
-  needTypes: NeedType[];
-};
-
-const NEED_TYPES: Array<{id: NeedType; label: string; description: string}> = [
-  { 
-    id: "tender", 
-    label: "Tender Baru", 
-    description: "Persiapan dokumen kepatuhan untuk pengajuan tender." 
-  },
-  { 
-    id: "proyek", 
-    label: "Proyek Berjalan", 
-    description: "Pemenuhan syarat operasional proyek konstruksi aktif." 
-  },
-  { 
-    id: "audit", 
-    label: "Persiapan Audit", 
-    description: "Pengecekan kesiapan sebelum audit eksternal/sertifikasi." 
-  }
-];
-
-const STANDARDS = [
-  { id: "iso9001", label: "ISO 9001 (Mutu)" },
-  { id: "iso14001", label: "ISO 14001 (Lingkungan)" },
-  { id: "iso45001", label: "ISO 45001 (K3)" },
-  { id: "iso39001", label: "ISO 39001 (Lalu Lintas)" }
-];
-
-const ALL_NEEDS: NeedType[] = ["tender", "proyek", "audit"];
 
 const MODULE_LABELS: Record<string, string> = {
   "/audit": "Audit",
@@ -101,28 +84,92 @@ const MANAGEMENT_FLOW = [
   },
 ];
 
-const CHECKLIST_DB: ChecklistItem[] = [
-  { id: "c1", standardId: "iso9001", label: "Manual Mutu & Kebijakan Mutu telah tersedia dan disahkan manajemen puncak", module: "/dokumen", needTypes: ALL_NEEDS },
-  { id: "c2", standardId: "iso9001", label: "Sasaran Mutu (KPI) spesifik proyek telah ditetapkan dan diukur pencapaiannya", module: "/kpi", needTypes: ALL_NEEDS },
-  { id: "c3", standardId: "iso9001", label: "Prosedur Pengendalian Dokumen & Rekaman (termasuk drawing proyek) diimplementasikan", module: "/dokumen", needTypes: ALL_NEEDS },
-  { id: "c4", standardId: "iso14001", label: "Dokumen Identifikasi Aspek & Dampak Lingkungan (IADL) proyek telah diperbarui", module: "/risiko", needTypes: ALL_NEEDS },
-  { id: "c5", standardId: "iso14001", label: "Prosedur Tanggap Darurat Tumpahan Limbah/B3 telah disosialisasikan", module: "/insiden", needTypes: ["proyek", "audit"] },
-  { id: "c6", standardId: "iso45001", label: "Identifikasi Bahaya & Penilaian Risiko (HIRADC/JSA) mencakup seluruh pekerjaan", module: "/risiko", needTypes: ALL_NEEDS },
-  { id: "c7", standardId: "iso45001", label: "Struktur Organisasi Tanggap Darurat & P2K3 disahkan secara resmi", module: "/layanan", needTypes: ALL_NEEDS },
-  { id: "c8", standardId: "iso45001", label: "Laporan insiden, near-miss, dan investigasi K3 terdokumentasi dengan baik", module: "/insiden", needTypes: ["proyek", "audit"] },
-  { id: "c9", standardId: "iso39001", label: "Kebijakan Keselamatan Lalu Lintas Jalan (RTS) untuk armada pengangkut material", module: "/dokumen", needTypes: ALL_NEEDS },
-  { id: "c10", standardId: "iso39001", label: "Daftar periksa kelaikan kendaraan berat sebelum beroperasi harian didokumentasikan", module: "/proyek", needTypes: ["tender", "proyek"] },
-  { id: "c11", standardId: "all", label: "Tinjauan Manajemen telah dilaksanakan sesuai dengan jadwal yang direncanakan", module: "/audit", needTypes: ALL_NEEDS },
-  { id: "c12", standardId: "all", label: "Laporan Audit Internal dan status tindakan perbaikannya (CAPA) lengkap", module: "/audit", needTypes: ALL_NEEDS },
-  { id: "c13", standardId: "all", label: "Daftar pemenuhan regulasi perundang-undangan (Legal Compliance) relevan", module: "/perpustakaan", needTypes: ALL_NEEDS }
-];
-
 export default function KesiapanProyekPage() {
+  const [location, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+  const projectId = new URLSearchParams(location.split("?")[1] ?? "").get("projectId");
+  const [activeProjectId, setActiveProjectId] = useState<number | null>(
+    projectId ? Number(projectId) : null,
+  );
   const [needType, setNeedType] = useState<NeedType>("proyek");
   const [selectedStandards, setSelectedStandards] = useState<string[]>([
     "iso9001", "iso14001", "iso45001", "iso39001"
   ]);
   const [checkedItems, setCheckedItems] = useState<string[]>([]);
+  const [saveMessage, setSaveMessage] = useState("");
+
+  const authQuery = useGetCurrentAuthUser();
+  const projectsQuery = useGetProjects({
+    query: {
+      enabled: Boolean(authQuery.data?.user),
+      queryKey: getGetProjectsQueryKey(),
+    },
+  });
+  const projects = projectsQuery.data?.data ?? [];
+  const readinessQuery = useGetProjectReadiness(activeProjectId ?? 0, {
+    query: {
+      enabled: Boolean(authQuery.data?.user && activeProjectId),
+      queryKey: getGetProjectReadinessQueryKey(activeProjectId ?? 0),
+    },
+  });
+  const saveReadiness = useSaveProjectReadiness();
+
+  useEffect(() => {
+    if (!projectsQuery.isSuccess) return;
+    const requestedId = projectId ? Number(projectId) : null;
+    const nextId =
+      requestedId && projects.some((project) => project.id === requestedId)
+        ? requestedId
+        : projects[0]?.id ?? null;
+    if (nextId !== activeProjectId) setActiveProjectId(nextId);
+  }, [activeProjectId, projectId, projects, projectsQuery.isSuccess]);
+
+  useEffect(() => {
+    if (!readinessQuery.isSuccess) return;
+    const assessment = readinessQuery.data.data;
+    setNeedType(assessment?.needType ?? "proyek");
+    setSelectedStandards(
+      assessment?.selectedStandards ?? ["iso9001", "iso14001", "iso45001", "iso39001"],
+    );
+    setCheckedItems(assessment?.checkedItems ?? []);
+  }, [activeProjectId, readinessQuery.data, readinessQuery.isSuccess]);
+
+  const loadProjectReadiness = (nextProjectId: number) => {
+    setActiveProjectId(nextProjectId);
+    setSaveMessage("");
+    setLocation(`/kesiapan-proyek?projectId=${nextProjectId}`);
+  };
+
+  const saveAssessment = async () => {
+    if (!activeProjectId) return;
+    setSaveMessage("");
+    try {
+      const saved = await saveReadiness.mutateAsync({
+        projectId: activeProjectId,
+        data: { needType, selectedStandards, checkedItems },
+      });
+      queryClient.setQueryData(
+        getGetProjectReadinessQueryKey(activeProjectId),
+        { success: true, data: saved.data },
+      );
+      queryClient.setQueryData(
+        getGetProjectsQueryKey(),
+        projectsQuery.data
+          ? {
+              ...projectsQuery.data,
+              data: projects.map((project) =>
+                project.id === activeProjectId
+                  ? { ...project, readiness: saved.data }
+                  : project,
+              ),
+            }
+          : projectsQuery.data,
+      );
+      setSaveMessage("Tersimpan di ISO Hub");
+    } catch (error) {
+      setSaveMessage(error instanceof Error ? error.message : "Penilaian gagal disimpan");
+    }
+  };
 
   const toggleStandard = (id: string) => {
     setSelectedStandards(prev => 
@@ -139,23 +186,56 @@ export default function KesiapanProyekPage() {
   const filteredChecklist = useMemo(() => {
     if (selectedStandards.length === 0) return [];
 
-    return CHECKLIST_DB.filter(item => {
-      const matchesNeed = item.needTypes.includes(needType);
-      const matchesStandard = item.standardId === "all" || selectedStandards.includes(item.standardId);
-      return matchesNeed && matchesStandard;
-    });
+    return getFilteredChecklist(needType, selectedStandards);
   }, [needType, selectedStandards]);
 
   const selectedNeed = NEED_TYPES.find(type => type.id === needType) ?? NEED_TYPES[1];
 
-  const completedCount = filteredChecklist.filter(item => checkedItems.includes(item.id)).length;
-  const percentage = filteredChecklist.length 
-    ? Math.round((completedCount / filteredChecklist.length) * 100) 
-    : 0;
+  const { completedCount, percentage } = getReadinessSummary(
+    needType,
+    selectedStandards,
+    checkedItems,
+  );
 
   const gaps = useMemo(() => {
     return filteredChecklist.filter(item => !checkedItems.includes(item.id));
   }, [filteredChecklist, checkedItems]);
+
+  if (
+    authQuery.isLoading ||
+    projectsQuery.isLoading ||
+    (activeProjectId && readinessQuery.isLoading)
+  ) {
+    return (
+      <main className="min-h-screen bg-neutral-950 text-neutral-50 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-neutral-400" data-testid="status-loading-readiness">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          Memuat penilaian kesiapan...
+        </div>
+      </main>
+    );
+  }
+
+  if (!authQuery.data?.user) {
+    return (
+      <main className="min-h-screen bg-neutral-950 text-neutral-50 flex items-center justify-center px-6">
+        <div className="max-w-md rounded-xl border border-neutral-800 bg-neutral-900 p-8 text-center">
+          <ShieldCheck className="w-12 h-12 text-blue-400 mx-auto mb-4" />
+          <h1 className="text-xl font-semibold mb-2">Masuk untuk membuka penilaian</h1>
+          <p className="text-sm text-neutral-400 mb-6">
+            Penilaian kesiapan hanya tersedia bagi anggota tim di akun ISO Hub yang sama.
+          </p>
+          <a
+            href="/api/login?returnTo=/kesiapan-proyek"
+            className="block w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold hover:bg-blue-500"
+            data-testid="link-readiness-login"
+          >
+            Masuk ke ISO Hub
+          </a>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-50 font-sans pb-16">
@@ -215,6 +295,37 @@ export default function KesiapanProyekPage() {
           {/* Setup Section */}
           <section className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6" data-testid="section-setup">
             <div className="mb-8">
+              <div className="mb-6 p-4 rounded-xl border border-blue-900/50 bg-blue-950/20">
+                <label htmlFor="readiness-project" className="block text-sm font-medium text-blue-200 mb-2">
+                  Proyek yang dinilai
+                </label>
+                {projects.length > 0 ? (
+                  <div className="relative">
+                    <select
+                      id="readiness-project"
+                      value={activeProjectId ?? ""}
+                      onChange={(event) => loadProjectReadiness(Number(event.target.value))}
+                      className="w-full appearance-none rounded-lg border border-blue-900/60 bg-neutral-950 px-3 py-2.5 pr-10 text-sm text-neutral-100 focus:border-blue-500 focus:outline-none"
+                      data-testid="select-readiness-project"
+                    >
+                      {projects.map((project) => (
+                        <option key={project.id} value={project.id}>{project.name}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-3 w-4 h-4 text-neutral-500" />
+                  </div>
+                ) : (
+                  <p className="text-sm text-neutral-400">
+                    Buat proyek terlebih dahulu di{" "}
+                    <Link href="/proyek" className="text-blue-400 hover:text-blue-300">Proyek</Link>.
+                  </p>
+                )}
+                {(projectsQuery.isError || readinessQuery.isError) && (
+                  <p className="mt-2 text-xs text-rose-400" data-testid="text-readiness-error">
+                    Data penilaian belum dapat dimuat. Coba muat ulang halaman.
+                  </p>
+                )}
+              </div>
               <h2 className="text-base font-medium text-white mb-4 flex items-center gap-2">
                 <Target className="w-4 h-4 text-blue-400" />
                 Konteks Kebutuhan Penilaian
@@ -272,9 +383,22 @@ export default function KesiapanProyekPage() {
           <section className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden" data-testid="section-checklist">
             <div className="p-6 border-b border-neutral-800 flex justify-between items-center bg-neutral-900/50">
               <h2 className="text-lg font-semibold text-white">Daftar Periksa Persyaratan</h2>
-              <span className="text-sm font-medium px-3 py-1 bg-neutral-800 rounded-full text-neutral-400 border border-neutral-700">
-                 {completedCount} / {filteredChecklist.length} Selesai
-              </span>
+              <div className="flex items-center gap-3">
+                {saveMessage && <span className="text-xs text-emerald-400" data-testid="status-readiness-save">{saveMessage}</span>}
+                <button
+                  type="button"
+                  onClick={saveAssessment}
+                  disabled={!activeProjectId || saveReadiness.isPending}
+                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  data-testid="button-save-readiness"
+                >
+                  {saveReadiness.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  {saveReadiness.isPending ? "Menyimpan..." : "Simpan penilaian"}
+                </button>
+                <span className="text-sm font-medium px-3 py-1 bg-neutral-800 rounded-full text-neutral-400 border border-neutral-700">
+                  {completedCount} / {filteredChecklist.length} Selesai
+                </span>
+              </div>
             </div>
             <div className="divide-y divide-neutral-800/50">
               {filteredChecklist.length === 0 ? (

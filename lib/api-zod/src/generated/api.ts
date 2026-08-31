@@ -132,3 +132,94 @@ export const RegisterPushTokenBody = zod.object({
 export const RegisterPushTokenResponse = zod.object({
   success: zod.boolean(),
 });
+
+/**
+ * @summary List ISO Hub consulting projects and saved readiness
+ */
+export const GetProjectsResponse = zod.object({
+  success: zod.boolean(),
+  data: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      client: zod.string(),
+      isoStandard: zod.string(),
+      description: zod.string().nullish(),
+      status: zod.string().nullish(),
+      progress: zod.number().nullish(),
+      createdAt: zod.coerce.date().nullish(),
+      updatedAt: zod.coerce.date().nullish(),
+      readiness: zod.union([
+        zod.object({
+          id: zod.number(),
+          projectId: zod.number(),
+          needType: zod.enum(["tender", "proyek", "audit"]),
+          selectedStandards: zod.array(zod.string()),
+          checkedItems: zod.array(zod.string()),
+          updatedAt: zod.coerce.date(),
+        }),
+        zod.null(),
+      ]),
+    }),
+  ),
+});
+
+/**
+ * @summary Create an ISO Hub consulting project
+ */
+
+export const CreateProjectBody = zod.object({
+  name: zod.string().min(1),
+  client: zod.string().min(1),
+  isoStandard: zod.string().min(1),
+  description: zod.string().optional(),
+});
+
+/**
+ * @summary Get a project's saved ISO Hub readiness assessment
+ */
+
+export const GetProjectReadinessParams = zod.object({
+  projectId: zod.coerce.number().min(1),
+});
+
+export const GetProjectReadinessResponse = zod.object({
+  success: zod.boolean(),
+  data: zod.union([
+    zod.object({
+      id: zod.number(),
+      projectId: zod.number(),
+      needType: zod.enum(["tender", "proyek", "audit"]),
+      selectedStandards: zod.array(zod.string()),
+      checkedItems: zod.array(zod.string()),
+      updatedAt: zod.coerce.date(),
+    }),
+    zod.null(),
+  ]),
+});
+
+/**
+ * @summary Save or update a project's ISO Hub readiness assessment
+ */
+
+export const SaveProjectReadinessParams = zod.object({
+  projectId: zod.coerce.number().min(1),
+});
+
+export const SaveProjectReadinessBody = zod.object({
+  needType: zod.enum(["tender", "proyek", "audit"]),
+  selectedStandards: zod.array(zod.string()),
+  checkedItems: zod.array(zod.string()),
+});
+
+export const SaveProjectReadinessResponse = zod.object({
+  success: zod.boolean(),
+  data: zod.object({
+    id: zod.number(),
+    projectId: zod.number(),
+    needType: zod.enum(["tender", "proyek", "audit"]),
+    selectedStandards: zod.array(zod.string()),
+    checkedItems: zod.array(zod.string()),
+    updatedAt: zod.coerce.date(),
+  }),
+});

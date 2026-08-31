@@ -19,6 +19,7 @@ import type {
 import type {
   AuthUserEnvelope,
   BeginBrowserLoginParams,
+  CreateProjectRequest,
   ErrorEnvelope,
   HandleBrowserLoginCallbackParams,
   HealthStatus,
@@ -27,8 +28,13 @@ import type {
   MobileLogoutRequest,
   MobileTokenExchangeRequest,
   MobileTokenExchangeSuccess,
+  ProjectEnvelope,
+  ProjectsEnvelope,
   PushTokenRegistration,
   PushTokenRegistrationSuccess,
+  ReadinessEnvelope,
+  ReadinessRecordEnvelope,
+  SaveReadinessRequest,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -754,4 +760,344 @@ export const useRegisterPushToken = <
   TContext
 > => {
   return useMutation(getRegisterPushTokenMutationOptions(options));
+};
+
+/**
+ * @summary List ISO Hub consulting projects and saved readiness
+ */
+export const getGetProjectsUrl = () => {
+  return `/api/v1/projects`;
+};
+
+export const getProjects = async (
+  options?: RequestInit,
+): Promise<ProjectsEnvelope> => {
+  return customFetch<ProjectsEnvelope>(getGetProjectsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetProjectsQueryKey = () => {
+  return [`/api/v1/projects`] as const;
+};
+
+export const getGetProjectsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getProjects>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getProjects>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetProjectsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getProjects>>> = ({
+    signal,
+  }) => getProjects({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getProjects>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetProjectsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getProjects>>
+>;
+export type GetProjectsQueryError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary List ISO Hub consulting projects and saved readiness
+ */
+
+export function useGetProjects<
+  TData = Awaited<ReturnType<typeof getProjects>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getProjects>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetProjectsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create an ISO Hub consulting project
+ */
+export const getCreateProjectUrl = () => {
+  return `/api/v1/projects`;
+};
+
+export const createProject = async (
+  createProjectRequest: CreateProjectRequest,
+  options?: RequestInit,
+): Promise<ProjectEnvelope> => {
+  return customFetch<ProjectEnvelope>(getCreateProjectUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createProjectRequest),
+  });
+};
+
+export const getCreateProjectMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createProject>>,
+    TError,
+    { data: BodyType<CreateProjectRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createProject>>,
+  TError,
+  { data: BodyType<CreateProjectRequest> },
+  TContext
+> => {
+  const mutationKey = ["createProject"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createProject>>,
+    { data: BodyType<CreateProjectRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createProject(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateProjectMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createProject>>
+>;
+export type CreateProjectMutationBody = BodyType<CreateProjectRequest>;
+export type CreateProjectMutationError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Create an ISO Hub consulting project
+ */
+export const useCreateProject = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createProject>>,
+    TError,
+    { data: BodyType<CreateProjectRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createProject>>,
+  TError,
+  { data: BodyType<CreateProjectRequest> },
+  TContext
+> => {
+  return useMutation(getCreateProjectMutationOptions(options));
+};
+
+/**
+ * @summary Get a project's saved ISO Hub readiness assessment
+ */
+export const getGetProjectReadinessUrl = (projectId: number) => {
+  return `/api/v1/projects/${projectId}/readiness`;
+};
+
+export const getProjectReadiness = async (
+  projectId: number,
+  options?: RequestInit,
+): Promise<ReadinessEnvelope> => {
+  return customFetch<ReadinessEnvelope>(getGetProjectReadinessUrl(projectId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetProjectReadinessQueryKey = (projectId: number) => {
+  return [`/api/v1/projects/${projectId}/readiness`] as const;
+};
+
+export const getGetProjectReadinessQueryOptions = <
+  TData = Awaited<ReturnType<typeof getProjectReadiness>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  projectId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getProjectReadiness>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetProjectReadinessQueryKey(projectId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getProjectReadiness>>
+  > = ({ signal }) =>
+    getProjectReadiness(projectId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!projectId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getProjectReadiness>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetProjectReadinessQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getProjectReadiness>>
+>;
+export type GetProjectReadinessQueryError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Get a project's saved ISO Hub readiness assessment
+ */
+
+export function useGetProjectReadiness<
+  TData = Awaited<ReturnType<typeof getProjectReadiness>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  projectId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getProjectReadiness>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetProjectReadinessQueryOptions(projectId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Save or update a project's ISO Hub readiness assessment
+ */
+export const getSaveProjectReadinessUrl = (projectId: number) => {
+  return `/api/v1/projects/${projectId}/readiness`;
+};
+
+export const saveProjectReadiness = async (
+  projectId: number,
+  saveReadinessRequest: SaveReadinessRequest,
+  options?: RequestInit,
+): Promise<ReadinessRecordEnvelope> => {
+  return customFetch<ReadinessRecordEnvelope>(
+    getSaveProjectReadinessUrl(projectId),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(saveReadinessRequest),
+    },
+  );
+};
+
+export const getSaveProjectReadinessMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof saveProjectReadiness>>,
+    TError,
+    { projectId: number; data: BodyType<SaveReadinessRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof saveProjectReadiness>>,
+  TError,
+  { projectId: number; data: BodyType<SaveReadinessRequest> },
+  TContext
+> => {
+  const mutationKey = ["saveProjectReadiness"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof saveProjectReadiness>>,
+    { projectId: number; data: BodyType<SaveReadinessRequest> }
+  > = (props) => {
+    const { projectId, data } = props ?? {};
+
+    return saveProjectReadiness(projectId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SaveProjectReadinessMutationResult = NonNullable<
+  Awaited<ReturnType<typeof saveProjectReadiness>>
+>;
+export type SaveProjectReadinessMutationBody = BodyType<SaveReadinessRequest>;
+export type SaveProjectReadinessMutationError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Save or update a project's ISO Hub readiness assessment
+ */
+export const useSaveProjectReadiness = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof saveProjectReadiness>>,
+    TError,
+    { projectId: number; data: BodyType<SaveReadinessRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof saveProjectReadiness>>,
+  TError,
+  { projectId: number; data: BodyType<SaveReadinessRequest> },
+  TContext
+> => {
+  return useMutation(getSaveProjectReadinessMutationOptions(options));
 };

@@ -1,5 +1,6 @@
 import { pgTable, text, integer, real, serial, boolean, timestamp, index, uniqueIndex, jsonb } from "drizzle-orm/pg-core";
 export * from "./auth";
+export * from "./readiness";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -158,6 +159,7 @@ export const generatedDocuments = pgTable("generated_documents", {
 
 export const consultingProjects = pgTable("consulting_projects", {
   id: serial("id").primaryKey(),
+  userId: text("user_id"),
   name: text("name").notNull(),
   client: text("client").notNull(),
   isoStandard: text("iso_standard").notNull(),

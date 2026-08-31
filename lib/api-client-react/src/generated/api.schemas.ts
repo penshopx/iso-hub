@@ -80,6 +80,87 @@ export const PushTokenRegistrationSuccessValue = {
 export type PushTokenRegistrationSuccess =
   typeof PushTokenRegistrationSuccessValue;
 
+export type ReadinessNeedType =
+  (typeof ReadinessNeedType)[keyof typeof ReadinessNeedType];
+
+export const ReadinessNeedType = {
+  tender: "tender",
+  proyek: "proyek",
+  audit: "audit",
+} as const;
+
+export interface Readiness {
+  id: number;
+  projectId: number;
+  needType: ReadinessNeedType;
+  selectedStandards: string[];
+  checkedItems: string[];
+  updatedAt: string;
+}
+
+export interface Project {
+  id: number;
+  name: string;
+  client: string;
+  isoStandard: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  status?: string | null;
+  /** @nullable */
+  progress?: number | null;
+  /** @nullable */
+  createdAt?: string | null;
+  /** @nullable */
+  updatedAt?: string | null;
+  readiness: Readiness | null;
+}
+
+export interface ProjectsEnvelope {
+  success: true;
+  data: Project[];
+}
+
+export interface ProjectEnvelope {
+  success: true;
+  data: Project;
+}
+
+export interface ReadinessEnvelope {
+  success: true;
+  data: Readiness | null;
+}
+
+export interface ReadinessRecordEnvelope {
+  success: true;
+  data: Readiness;
+}
+
+export interface CreateProjectRequest {
+  /** @minLength 1 */
+  name: string;
+  /** @minLength 1 */
+  client: string;
+  /** @minLength 1 */
+  isoStandard: string;
+  description?: string;
+}
+
+export type SaveReadinessRequestNeedType =
+  (typeof SaveReadinessRequestNeedType)[keyof typeof SaveReadinessRequestNeedType];
+
+export const SaveReadinessRequestNeedType = {
+  tender: "tender",
+  proyek: "proyek",
+  audit: "audit",
+} as const;
+
+export interface SaveReadinessRequest {
+  needType: SaveReadinessRequestNeedType;
+  selectedStandards: string[];
+  checkedItems: string[];
+}
+
 export interface ErrorEnvelope {
   error: string;
 }
