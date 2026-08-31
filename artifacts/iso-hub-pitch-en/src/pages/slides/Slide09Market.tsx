@@ -60,7 +60,7 @@ export default function Slide09Market() {
                 WebkitTextFillColor: 'transparent',
               }}
             >
-              Growing Fast
+              Growing Rapidly
             </span>
           </h2>
         </div>
@@ -209,7 +209,7 @@ export default function Slide09Market() {
           >
             <div>
               <p style={{ fontFamily: 'var(--font-body-family)', fontSize: '1.2vw', fontWeight: 600, color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '2vh' }}>
-                Keunggulan ISO Hub
+                ISO Hub Advantage
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2.2vh' }}>

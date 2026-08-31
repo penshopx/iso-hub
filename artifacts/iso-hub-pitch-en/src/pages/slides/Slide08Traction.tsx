@@ -61,7 +61,7 @@ export default function Slide08Traction() {
                 WebkitTextFillColor: 'transparent',
               }}
             >
-              dalam Angka
+              By the Numbers
             </span>
           </h2>
         </div>
@@ -157,7 +157,7 @@ export default function Slide08Traction() {
                 marginTop: '1vh',
               }}
             >
-              ISO Standards Supported
+              Supported ISO Standards
             </div>
             <div
               style={{
@@ -214,7 +214,7 @@ export default function Slide08Traction() {
                 marginTop: '0.5vh',
               }}
             >
-              Perpustakaan pengetahuan ISO terlengkap
+              Comprehensive ISO knowledge library
             </div>
           </div>
 
@@ -251,7 +251,7 @@ export default function Slide08Traction() {
                 marginTop: '1vh',
               }}
             >
-              Modul Terintegrasi
+              Integrated Modules
             </div>
             <div
               style={{

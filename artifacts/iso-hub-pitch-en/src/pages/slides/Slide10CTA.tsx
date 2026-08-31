@@ -153,7 +153,7 @@ export default function Slide10CTA() {
             <svg style={{ width: '1.4vw', height: '1.4vw', color: '#10B981' }} fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
-            <span style={{ fontFamily: 'var(--font-body-family)', fontSize: '1.4vw', fontWeight: 500, color: '#6EE7B7' }}>9+ Standar ISO</span>
+            <span style={{ fontFamily: 'var(--font-body-family)', fontSize: '1.4vw', fontWeight: 500, color: '#6EE7B7' }}>9+ ISO Standards</span>
           </div>
         </div>
 

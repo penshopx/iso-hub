@@ -119,7 +119,7 @@ export default function Slide03Solution() {
                 letterSpacing: '-0.01em',
               }}
             >
-              Kecerdasan AI
+              AI-Powered Intelligence
             </h3>
             <p
               style={{
