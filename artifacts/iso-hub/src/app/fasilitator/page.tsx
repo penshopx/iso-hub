@@ -22,8 +22,19 @@ function getIsoBadge(iso: string | null): string {
   return isoBadges[iso || "ISO 9001"] || "bg-gray-500";
 }
 
+interface Facilitator {
+  id: number | string;
+  name: string;
+  location?: string | null;
+  rating?: number | null;
+  reviewCount?: number | null;
+  bio?: string | null;
+  certifications?: string | null;
+  experience?: number | null;
+}
+
 export default function FasilitatorPage() {
-  const [facilitatorsList, setFacilitatorsList] = useState([]);
+  const [facilitatorsList, setFacilitatorsList] = useState<Facilitator[]>([]);
 
   useEffect(() => {
     fetch('/api/iso/facilitators')

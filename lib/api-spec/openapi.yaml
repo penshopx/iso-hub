@@ -12,6 +12,8 @@ tags:
     description: Health operations
   - name: Auth
     description: Browser and mobile authentication endpoints.
+  - name: Notifications
+    description: Mobile push notification registration.
 paths:
   /healthz:
     get:
@@ -141,6 +143,12 @@ paths:
       summary: Delete a mobile session token
       parameters:
         - $ref: '#/components/parameters/AuthorizationSessionHeader'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MobileLogoutRequest'
       responses:
         '200':
           description: Logout processed.
@@ -148,7 +156,44 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LogoutSuccess'
+  /v1/notifications/push-token:
+    post:
+      tags: [Notifications]
+      operationId: registerPushToken
+      summary: Register an Expo push token for the authenticated mobile user
+      security:
+        - SessionBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PushTokenRegistration'
+      responses:
+        '200':
+          description: Push token registered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PushTokenRegistrationSuccess'
+        '400':
+          description: Invalid push token or platform.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: Authentication required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
 components:
+  securitySchemes:
+    SessionBearer:
+      type: http
+      scheme: bearer
+      description: Opaque mobile session token.
   parameters:
     AuthorizationSessionHeader:
       name: Authorization
@@ -221,7 +266,34 @@ components:
       properties:
         token:
           type: string
+    MobileLogoutRequest:
+      type: object
+      properties:
+        pushToken:
+          type: [string, 'null']
+          description: Expo push token registered by this app installation.
     LogoutSuccess:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+          const: true
+    PushTokenRegistration:
+      type: object
+      required: [token, platform]
+      properties:
+        token:
+          type: string
+          minLength: 1
+          description: ExpoPushToken or ExponentPushToken value.
+        platform:
+          type: string
+          enum: [ios, android]
+        deviceId:
+          type: string
+          maxLength: 200
+    PushTokenRegistrationSuccess:
       type: object
       required: [success]
       properties:

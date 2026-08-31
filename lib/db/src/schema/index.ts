@@ -1,4 +1,4 @@
-import { pgTable, text, integer, real, serial, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, real, serial, boolean, timestamp, index, uniqueIndex } from "drizzle-orm/pg-core";
 export * from "./auth";
 
 export const users = pgTable("users", {
@@ -350,6 +350,37 @@ export const kpiMeasurements = pgTable("kpi_measurements", {
   recordedBy: text("recorded_by"),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export const pushTokens = pgTable("push_tokens", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  token: text("token").notNull(),
+  platform: text("platform").notNull(),
+  deviceId: text("device_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  lastUsedAt: timestamp("last_used_at"),
+}, (table) => ({
+  tokenUnique: uniqueIndex("push_tokens_token_unique").on(table.token),
+  userIndex: index("push_tokens_user_id_idx").on(table.userId),
+}));
+
+export const notificationDeliveries = pgTable("notification_deliveries", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  alertKey: text("alert_key").notNull(),
+  alertType: text("alert_type").notNull(),
+  entityId: integer("entity_id"),
+  status: text("status").notNull().default("pending"),
+  claimId: text("claim_id"),
+  claimedAt: timestamp("claimed_at"),
+  sentAt: timestamp("sent_at"),
+  attempts: integer("attempts").notNull().default(0),
+  lastError: text("last_error"),
+}, (table) => ({
+  alertKeyUnique: uniqueIndex("notification_deliveries_alert_key_unique").on(table.alertKey),
+  userIndex: index("notification_deliveries_user_id_idx").on(table.userId),
+}));
 
 export const managementReviews = pgTable("management_reviews", {
   id: serial("id").primaryKey(),

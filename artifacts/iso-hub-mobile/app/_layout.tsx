@@ -32,7 +32,8 @@ const queryClient = new QueryClient({
 });
 
 function AuthenticatedEffects() {
-  useNotifications();
+  const { user } = useAuth();
+  useNotifications(user?.id);
   return null;
 }
 

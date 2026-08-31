@@ -3,6 +3,10 @@ import { boundedRiskScore, classifyRisk, normalizeRiskStatus } from "@workspace/
 import { db } from "@workspace/db";
 import { risks, vendors, opcTasks, facilitators, services, bookings, knowledgeArticles } from "@workspace/db";
 import { desc, sql, eq, like, or, and } from "drizzle-orm";
+import {
+  isValidExpoPushToken,
+  registerPushToken,
+} from "../lib/notifications";
 
 const router = Router();
 
@@ -16,6 +20,33 @@ function getAuthenticatedUserId(
   }
   return req.user.id;
 }
+
+// Mobile push token registration
+router.post("/v1/notifications/push-token", async (req, res) => {
+  const userId = getAuthenticatedUserId(req, res);
+  if (!userId) return;
+
+  const { token, platform, deviceId } = req.body ?? {};
+  if (
+    !isValidExpoPushToken(token) ||
+    (platform !== "ios" && platform !== "android") ||
+    (deviceId !== undefined && (typeof deviceId !== "string" || deviceId.length > 200))
+  ) {
+    res.status(400).json({
+      success: false,
+      error: "A valid Expo push token and mobile platform are required",
+    });
+    return;
+  }
+
+  try {
+    await registerPushToken(userId, { token, platform, deviceId });
+    res.json({ success: true });
+  } catch (error) {
+    req.log.error({ error }, "Failed to register push token");
+    res.status(500).json({ success: false, error: "Failed to register push token" });
+  }
+});
 
 // Dashboard stats
 router.get("/v1/dashboard", async (req, res) => {

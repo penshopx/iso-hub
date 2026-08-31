@@ -13,12 +13,17 @@
 import { useEffect, useRef } from 'react';
 import { Alert, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFetch, AuditTask, Risk } from '@/lib/api';
+import {
+  AUDIT_NOTIFICATION_ID,
+  REGISTERED_PUSH_TOKEN_KEY,
+} from '@/lib/notification-storage';
 
 const PERMISSION_ASKED_KEY = 'notifications_permission_asked';
 const CRITICAL_ALERTED_KEY = 'notifications_critical_alerted_ids';
-const AUDIT_NOTIF_ID = 'audit-daily-reminder';
+const DEVICE_ID_KEY = 'notifications_device_id';
 
 // Configure how notifications appear while the app is in the foreground
 Notifications.setNotificationHandler({
@@ -63,13 +68,49 @@ async function requestPermissionWithExplanation(): Promise<boolean> {
   return perm.granted;
 }
 
+async function getNotificationDeviceId(): Promise<string> {
+  const stored = await AsyncStorage.getItem(DEVICE_ID_KEY);
+  if (stored) return stored;
+
+  const generated = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+  await AsyncStorage.setItem(DEVICE_ID_KEY, generated);
+  return generated;
+}
+
+async function registerForRemotePushNotifications(): Promise<void> {
+  if (Platform.OS === 'web') return;
+
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('compliance-alerts', {
+      name: 'Compliance alerts',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      sound: 'default',
+    });
+  }
+
+  const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+  const tokenResponse = await Notifications.getExpoPushTokenAsync(
+    projectId ? { projectId } : undefined,
+  );
+  await apiFetch<{ success: boolean }>('/v1/notifications/push-token', {
+    method: 'POST',
+    body: JSON.stringify({
+      token: tokenResponse.data,
+      platform: Platform.OS,
+      deviceId: await getNotificationDeviceId(),
+    }),
+  });
+  await AsyncStorage.setItem(REGISTERED_PUSH_TOKEN_KEY, tokenResponse.data);
+}
+
 async function scheduleAuditReminder(tasks: AuditTask[]): Promise<void> {
   if (Platform.OS === 'web') return;
 
   const pending = tasks.filter(t => t.status === 'pending');
 
   // Cancel any existing reminder first
-  await Notifications.cancelScheduledNotificationAsync(AUDIT_NOTIF_ID).catch(() => {});
+  await Notifications.cancelScheduledNotificationAsync(AUDIT_NOTIFICATION_ID).catch(() => {});
 
   if (pending.length === 0) return;
 
@@ -79,7 +120,7 @@ async function scheduleAuditReminder(tasks: AuditTask[]): Promise<void> {
       : `${pending.length} tugas audit menunggu penyelesaian`;
 
   await Notifications.scheduleNotificationAsync({
-    identifier: AUDIT_NOTIF_ID,
+    identifier: AUDIT_NOTIFICATION_ID,
     content: {
       title: '📋 Pengingat Audit ISO',
       body,
@@ -121,17 +162,23 @@ async function alertCriticalRisks(risks: Risk[]): Promise<void> {
   await AsyncStorage.setItem(CRITICAL_ALERTED_KEY, JSON.stringify(updatedIds));
 }
 
-export function useNotifications(): void {
-  const initialized = useRef(false);
+export function useNotifications(userId?: string): void {
+  const initializedForUser = useRef<string | null>(null);
 
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
+    if (!userId || initializedForUser.current === userId) return;
+    initializedForUser.current = userId;
 
     (async () => {
       try {
         const granted = await requestPermissionWithExplanation();
         if (!granted) return;
+
+        // Register the device token so the server can notify this user while
+        // the app is backgrounded or closed.
+        await registerForRemotePushNotifications().catch(error => {
+          console.warn('[useNotifications] remote push registration error:', error);
+        });
 
         // Fetch audit tasks and risks concurrently, then set up notifications
         const [auditRes, risksRes] = await Promise.all([
@@ -151,5 +198,5 @@ export function useNotifications(): void {
         console.warn('[useNotifications] setup error:', e);
       }
     })();
-  }, []);
+  }, [userId]);
 }

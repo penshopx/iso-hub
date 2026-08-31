@@ -1,4 +1,4 @@
-import { AIRequest, AIResponse, getAIConfig, getAIProvider, isAIConfigured, AIProvider, AI_CONFIG } from "./ai-config";
+import { AIRequest, AIResponse, getAIConfig, getAIProvider, isAIConfigured, AIProvider } from "./ai-config";
 
 interface ProviderConfig {
   apiKey: string;

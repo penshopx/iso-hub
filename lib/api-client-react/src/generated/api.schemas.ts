@@ -42,10 +42,43 @@ export interface MobileTokenExchangeSuccess {
   token: string;
 }
 
+export interface MobileLogoutRequest {
+  /**
+   * Expo push token registered by this app installation.
+   * @nullable
+   */
+  pushToken?: string | null;
+}
+
 export const LogoutSuccessValue = {
   success: true,
 } as const;
 export type LogoutSuccess = typeof LogoutSuccessValue;
+
+export type PushTokenRegistrationPlatform =
+  (typeof PushTokenRegistrationPlatform)[keyof typeof PushTokenRegistrationPlatform];
+
+export const PushTokenRegistrationPlatform = {
+  ios: "ios",
+  android: "android",
+} as const;
+
+export interface PushTokenRegistration {
+  /**
+   * ExpoPushToken or ExponentPushToken value.
+   * @minLength 1
+   */
+  token: string;
+  platform: PushTokenRegistrationPlatform;
+  /** @maxLength 200 */
+  deviceId?: string;
+}
+
+export const PushTokenRegistrationSuccessValue = {
+  success: true,
+} as const;
+export type PushTokenRegistrationSuccess =
+  typeof PushTokenRegistrationSuccessValue;
 
 export interface ErrorEnvelope {
   error: string;

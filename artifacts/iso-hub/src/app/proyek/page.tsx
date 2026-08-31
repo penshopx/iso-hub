@@ -17,16 +17,28 @@ const isoColors: Record<string, string> = {
   "ISO 9001": "bg-blue-500",
 };
 
-function getStatusColor(status: string | null): string {
+function getStatusColor(status: string | null | undefined): string {
   return statusColors[status || "planning"] || "bg-yellow-500";
 }
 
-function getIsoColor(iso: string | null): string {
+function getIsoColor(iso: string | null | undefined): string {
   return isoColors[iso || "ISO 9001"] || "bg-blue-500";
 }
 
+interface Project {
+  id: number | string;
+  name: string;
+  client?: string | null;
+  isoStandard?: string | null;
+  status?: string | null;
+  progress?: number | null;
+  completedTasks?: number | null;
+  totalTasks?: number | null;
+  totalMilestones?: number | null;
+}
+
 export default function ProyekPage() {
-  const [projects, setProjects] = useState([]);
+  const [projects, setProjects] = useState<Project[]>([]);
 
   useEffect(() => {
     fetch('/api/certifications')
@@ -76,6 +88,13 @@ export default function ProyekPage() {
             </div>
           ) : (
             projects.map((project) => {
+              const stats = {
+                progress: project.progress ?? 0,
+                completedTasks: project.completedTasks ?? 0,
+                totalTasks: project.totalTasks ?? 0,
+                totalMilestones: project.totalMilestones ?? 0,
+              };
+
               return (
                 <div key={project.id} className="p-6 bg-neutral-800 rounded-lg border border-neutral-700 hover:border-neutral-600 transition-colors">
                   <div className="flex items-start justify-between mb-4">

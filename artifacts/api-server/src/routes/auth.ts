@@ -19,6 +19,10 @@ import {
   SESSION_TTL,
   type SessionData,
 } from "../lib/auth";
+import {
+  isValidExpoPushToken,
+  unregisterPushToken,
+} from "../lib/notifications";
 
 const OIDC_COOKIE_TTL = 10 * 60 * 1000;
 const router: IRouter = Router();
@@ -304,6 +308,22 @@ router.post(
   "/mobile-auth/logout",
   async (req: Request, res: Response): Promise<void> => {
     const sid = getSessionId(req);
+    const pushToken = req.body?.pushToken;
+    if (
+      req.isAuthenticated() &&
+      isValidExpoPushToken(pushToken)
+    ) {
+      try {
+        await unregisterPushToken(req.user.id, pushToken);
+      } catch (error) {
+        req.log.error(
+          getSafeErrorMetadata(error),
+          "Failed to unregister push token during logout",
+        );
+        res.status(500).json({ error: "Failed to unregister push notifications" });
+        return;
+      }
+    }
     if (sid) await deleteSession(sid);
     res.json(LogoutMobileSessionResponse.parse({ success: true }));
   },

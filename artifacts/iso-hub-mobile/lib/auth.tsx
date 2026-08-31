@@ -10,11 +10,16 @@ import React, {
 import * as AuthSession from 'expo-auth-session';
 import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   deleteAuthStorageItem,
   getAuthStorageItem,
   setAuthStorageItem,
 } from '@/lib/auth-storage';
+import {
+  clearRegisteredNotifications,
+  REGISTERED_PUSH_TOKEN_KEY,
+} from '@/lib/notification-storage';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -160,19 +165,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [promptAsync, request]);
 
   const logout = useCallback(async () => {
-    try {
-      const token = await getAuthStorageItem(AUTH_TOKEN_KEY);
-      if (token) {
-        await fetch(`${getApiBaseUrl()}/api/mobile-auth/logout`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-        });
+    const token = await getAuthStorageItem(AUTH_TOKEN_KEY);
+    if (token) {
+      const pushToken = await AsyncStorage.getItem(REGISTERED_PUSH_TOKEN_KEY);
+      const response = await fetch(`${getApiBaseUrl()}/api/mobile-auth/logout`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ pushToken }),
+      });
+      if (!response.ok) {
+        throw new Error('Logout gagal. Silakan periksa koneksi dan coba lagi.');
       }
-    } finally {
-      await deleteAuthStorageItem(AUTH_TOKEN_KEY);
-      await deleteAuthStorageItem(AUTH_USER_KEY);
-      setUser(null);
     }
+
+    await clearRegisteredNotifications();
+    await deleteAuthStorageItem(AUTH_TOKEN_KEY);
+    await deleteAuthStorageItem(AUTH_USER_KEY);
+    setUser(null);
   }, []);
 
   const value = useMemo<AuthContextValue>(

@@ -24,8 +24,11 @@ import type {
   HealthStatus,
   LogoutBrowserSessionParams,
   LogoutSuccess,
+  MobileLogoutRequest,
   MobileTokenExchangeRequest,
   MobileTokenExchangeSuccess,
+  PushTokenRegistration,
+  PushTokenRegistrationSuccess,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -589,11 +592,14 @@ export const getLogoutMobileSessionUrl = () => {
 };
 
 export const logoutMobileSession = async (
+  mobileLogoutRequest?: MobileLogoutRequest,
   options?: RequestInit,
 ): Promise<LogoutSuccess> => {
   return customFetch<LogoutSuccess>(getLogoutMobileSessionUrl(), {
     ...options,
     method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(mobileLogoutRequest),
   });
 };
 
@@ -604,14 +610,14 @@ export const getLogoutMobileSessionMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof logoutMobileSession>>,
     TError,
-    void,
+    { data: BodyType<MobileLogoutRequest> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof logoutMobileSession>>,
   TError,
-  void,
+  { data: BodyType<MobileLogoutRequest> },
   TContext
 > => {
   const mutationKey = ["logoutMobileSession"];
@@ -625,9 +631,11 @@ export const getLogoutMobileSessionMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof logoutMobileSession>>,
-    void
-  > = () => {
-    return logoutMobileSession(requestOptions);
+    { data: BodyType<MobileLogoutRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return logoutMobileSession(data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -636,7 +644,7 @@ export const getLogoutMobileSessionMutationOptions = <
 export type LogoutMobileSessionMutationResult = NonNullable<
   Awaited<ReturnType<typeof logoutMobileSession>>
 >;
-
+export type LogoutMobileSessionMutationBody = BodyType<MobileLogoutRequest>;
 export type LogoutMobileSessionMutationError = ErrorType<unknown>;
 
 /**
@@ -649,15 +657,101 @@ export const useLogoutMobileSession = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof logoutMobileSession>>,
     TError,
-    void,
+    { data: BodyType<MobileLogoutRequest> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof logoutMobileSession>>,
   TError,
-  void,
+  { data: BodyType<MobileLogoutRequest> },
   TContext
 > => {
   return useMutation(getLogoutMobileSessionMutationOptions(options));
+};
+
+/**
+ * @summary Register an Expo push token for the authenticated mobile user
+ */
+export const getRegisterPushTokenUrl = () => {
+  return `/api/v1/notifications/push-token`;
+};
+
+export const registerPushToken = async (
+  pushTokenRegistration: PushTokenRegistration,
+  options?: RequestInit,
+): Promise<PushTokenRegistrationSuccess> => {
+  return customFetch<PushTokenRegistrationSuccess>(getRegisterPushTokenUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(pushTokenRegistration),
+  });
+};
+
+export const getRegisterPushTokenMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerPushToken>>,
+    TError,
+    { data: BodyType<PushTokenRegistration> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof registerPushToken>>,
+  TError,
+  { data: BodyType<PushTokenRegistration> },
+  TContext
+> => {
+  const mutationKey = ["registerPushToken"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof registerPushToken>>,
+    { data: BodyType<PushTokenRegistration> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return registerPushToken(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RegisterPushTokenMutationResult = NonNullable<
+  Awaited<ReturnType<typeof registerPushToken>>
+>;
+export type RegisterPushTokenMutationBody = BodyType<PushTokenRegistration>;
+export type RegisterPushTokenMutationError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Register an Expo push token for the authenticated mobile user
+ */
+export const useRegisterPushToken = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerPushToken>>,
+    TError,
+    { data: BodyType<PushTokenRegistration> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof registerPushToken>>,
+  TError,
+  { data: BodyType<PushTokenRegistration> },
+  TContext
+> => {
+  return useMutation(getRegisterPushTokenMutationOptions(options));
 };

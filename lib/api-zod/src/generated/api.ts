@@ -103,6 +103,32 @@ export const LogoutMobileSessionHeader = zod.object({
     .describe("Opaque session token — `Bearer <sid>`."),
 });
 
+export const LogoutMobileSessionBody = zod.object({
+  pushToken: zod
+    .string()
+    .nullish()
+    .describe("Expo push token registered by this app installation."),
+});
+
 export const LogoutMobileSessionResponse = zod.object({
+  success: zod.boolean(),
+});
+
+/**
+ * @summary Register an Expo push token for the authenticated mobile user
+ */
+
+export const registerPushTokenBodyDeviceIdMax = 200;
+
+export const RegisterPushTokenBody = zod.object({
+  token: zod
+    .string()
+    .min(1)
+    .describe("ExpoPushToken or ExponentPushToken value."),
+  platform: zod.enum(["ios", "android"]),
+  deviceId: zod.string().max(registerPushTokenBodyDeviceIdMax).optional(),
+});
+
+export const RegisterPushTokenResponse = zod.object({
   success: zod.boolean(),
 });
