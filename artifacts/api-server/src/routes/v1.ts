@@ -6,9 +6,30 @@ import { desc, sql, eq, like, or, and } from "drizzle-orm";
 import {
   isValidExpoPushToken,
   registerPushToken,
+  updatePushTokenPreferences,
 } from "../lib/notifications";
+import type { NotificationPreferenceFlags } from "../lib/notificationPreferences";
 
 const router = Router();
+
+function parseNotificationPreferences(
+  value: unknown,
+): NotificationPreferenceFlags | null {
+  if (!value || typeof value !== "object") return null;
+  const preferences = value as Partial<NotificationPreferenceFlags>;
+  if (
+    typeof preferences.criticalRiskAlerts !== "boolean" ||
+    typeof preferences.auditReminders !== "boolean" ||
+    typeof preferences.kpiWarnings !== "boolean"
+  ) {
+    return null;
+  }
+  return {
+    criticalRiskAlerts: preferences.criticalRiskAlerts,
+    auditReminders: preferences.auditReminders,
+    kpiWarnings: preferences.kpiWarnings,
+  };
+}
 
 function getAuthenticatedUserId(
   req: Request,
@@ -26,11 +47,15 @@ router.post("/v1/notifications/push-token", async (req, res) => {
   const userId = getAuthenticatedUserId(req, res);
   if (!userId) return;
 
-  const { token, platform, deviceId } = req.body ?? {};
+  const { token, platform, deviceId, preferences: rawPreferences } = req.body ?? {};
+  const preferences = rawPreferences === undefined
+    ? undefined
+    : parseNotificationPreferences(rawPreferences);
   if (
     !isValidExpoPushToken(token) ||
     (platform !== "ios" && platform !== "android") ||
-    (deviceId !== undefined && (typeof deviceId !== "string" || deviceId.length > 200))
+    (deviceId !== undefined && (typeof deviceId !== "string" || deviceId.length > 200)) ||
+    (rawPreferences !== undefined && !preferences)
   ) {
     res.status(400).json({
       success: false,
@@ -40,11 +65,46 @@ router.post("/v1/notifications/push-token", async (req, res) => {
   }
 
   try {
-    await registerPushToken(userId, { token, platform, deviceId });
+    await registerPushToken(userId, {
+      token,
+      platform,
+      deviceId,
+      preferences: preferences ?? undefined,
+    });
     res.json({ success: true });
   } catch (error) {
     req.log.error({ error }, "Failed to register push token");
     res.status(500).json({ success: false, error: "Failed to register push token" });
+  }
+});
+
+router.patch("/v1/notifications/push-token/preferences", async (req, res) => {
+  const userId = getAuthenticatedUserId(req, res);
+  if (!userId) return;
+
+  const { token, preferences: rawPreferences } = req.body ?? {};
+  const preferences = parseNotificationPreferences(rawPreferences);
+  if (!isValidExpoPushToken(token) || !preferences) {
+    res.status(400).json({
+      success: false,
+      error: "A valid Expo push token and notification preferences are required",
+    });
+    return;
+  }
+
+  try {
+    const updated = await updatePushTokenPreferences(userId, token, preferences);
+    if (!updated) {
+      res.status(404).json({ success: false, error: "Push token not found" });
+      return;
+    }
+    res.json({ success: true });
+  } catch (error) {
+    req.log.error({ error }, "Failed to update push notification preferences");
+    res.status(500).json({
+      success: false,
+      error: "Failed to update push notification preferences",
+    });
   }
 });
 

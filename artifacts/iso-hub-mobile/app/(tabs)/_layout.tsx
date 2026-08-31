@@ -32,6 +32,10 @@ function NativeTabLayout() {
         <Icon sf={{ default: 'sparkles', selected: 'sparkles' }} />
         <Label>AI Chat</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="settings">
+        <Icon sf={{ default: 'gearshape', selected: 'gearshape.fill' }} />
+        <Label>Pengaturan</Label>
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
@@ -128,6 +132,18 @@ function ClassicTabLayout() {
               <SymbolView name="sparkles" tintColor={color} size={24} />
             ) : (
               <Ionicons name="chatbubbles-outline" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Pengaturan',
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="gearshape" tintColor={color} size={24} />
+            ) : (
+              <Ionicons name="settings-outline" size={22} color={color} />
             ),
         }}
       />

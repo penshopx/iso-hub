@@ -19,6 +19,13 @@ import {
   sql,
 } from "drizzle-orm";
 import crypto from "node:crypto";
+import {
+  allowsComplianceAlert,
+  type ComplianceAlertType,
+  DEFAULT_NOTIFICATION_PREFERENCES,
+  filterEligiblePushTokens,
+  type NotificationPreferenceFlags,
+} from "./notificationPreferences";
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 const DEFAULT_INTERVAL_MS = 15 * 60 * 1000;
@@ -33,11 +40,12 @@ export interface RegisterPushTokenInput {
   token: string;
   platform: "ios" | "android";
   deviceId?: string;
+  preferences?: NotificationPreferenceFlags;
 }
 
 interface ComplianceAlert {
   alertKey: string;
-  alertType: "critical_risk" | "audit_deadline";
+  alertType: ComplianceAlertType;
   entityId: number;
   userId: string;
   title: string;
@@ -71,6 +79,7 @@ export async function registerPushToken(
   userId: string,
   input: RegisterPushTokenInput,
 ): Promise<void> {
+  const preferences = input.preferences ?? DEFAULT_NOTIFICATION_PREFERENCES;
   await db
     .insert(pushTokens)
     .values({
@@ -78,6 +87,7 @@ export async function registerPushToken(
       token: input.token,
       platform: input.platform,
       deviceId: input.deviceId,
+      ...preferences,
       updatedAt: new Date(),
       lastUsedAt: new Date(),
     })
@@ -87,10 +97,28 @@ export async function registerPushToken(
         userId,
         platform: input.platform,
         deviceId: input.deviceId,
+        ...(input.preferences ?? {}),
         updatedAt: new Date(),
         lastUsedAt: new Date(),
       },
     });
+}
+
+export async function updatePushTokenPreferences(
+  userId: string,
+  token: string,
+  preferences: NotificationPreferenceFlags,
+): Promise<boolean> {
+  const updated = await db
+    .update(pushTokens)
+    .set({
+      ...preferences,
+      updatedAt: new Date(),
+      lastUsedAt: new Date(),
+    })
+    .where(and(eq(pushTokens.userId, userId), eq(pushTokens.token, token)))
+    .returning({ id: pushTokens.id });
+  return updated.length > 0;
 }
 
 export async function unregisterPushToken(
@@ -337,19 +365,24 @@ async function runClaimedComplianceNotificationJob(
     .select({
       userId: pushTokens.userId,
       token: pushTokens.token,
+      criticalRiskAlerts: pushTokens.criticalRiskAlerts,
+      auditReminders: pushTokens.auditReminders,
+      kpiWarnings: pushTokens.kpiWarnings,
     })
     .from(pushTokens)
     .where(inArray(pushTokens.userId, userIds));
 
-  const tokensByUser = new Map<string, string[]>();
+  const tokensByUser = new Map<string, typeof tokenRows>();
   for (const row of tokenRows) {
     const tokens = tokensByUser.get(row.userId) ?? [];
-    tokens.push(row.token);
+    tokens.push(row);
     tokensByUser.set(row.userId, tokens);
   }
 
   const alertsWithTokens = alerts.filter(
-    alert => (tokensByUser.get(alert.userId)?.length ?? 0) > 0,
+    alert => tokensByUser
+      .get(alert.userId)
+      ?.some(token => allowsComplianceAlert(token, alert.alertType)) ?? false,
   );
   const { alerts: claimedAlerts, claimId } = await claimAlerts(alertsWithTokens, now);
   if (claimedAlerts.length === 0) {
@@ -358,9 +391,13 @@ async function runClaimedComplianceNotificationJob(
 
   const messages: ExpoPushMessage[] = [];
   for (const alert of claimedAlerts) {
-    for (const token of tokensByUser.get(alert.userId) ?? []) {
+    const eligibleTokens = filterEligiblePushTokens(
+      tokensByUser.get(alert.userId) ?? [],
+      alert.alertType,
+    );
+    for (const token of eligibleTokens) {
       messages.push({
-        to: token,
+        to: token.token,
         title: alert.title,
         body: alert.body,
         data: alert.data,
