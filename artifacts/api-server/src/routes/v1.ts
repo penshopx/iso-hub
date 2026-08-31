@@ -9,6 +9,12 @@ import {
   updatePushTokenPreferences,
 } from "../lib/notifications";
 import type { NotificationPreferenceFlags } from "../lib/notificationPreferences";
+import {
+  IdempotencyConflictError,
+  isValidIdempotencyKey,
+  normalizeIdempotencyKey,
+  runIdempotentMutation,
+} from "../lib/idempotency";
 
 const router = Router();
 
@@ -160,6 +166,11 @@ router.post("/v1/risks", async (req, res) => {
     if (!userId) return;
 
     const body = req.body;
+    const idempotencyKey = normalizeIdempotencyKey(req.get("Idempotency-Key"));
+    if (!isValidIdempotencyKey(idempotencyKey)) {
+      res.status(400).json({ success: false, error: "Idempotency-Key must be 255 characters or fewer" });
+      return;
+    }
     const probability = boundedRiskScore(body.probability);
     const impact = boundedRiskScore(body.impact);
     const riskLevel = classifyRisk(probability, impact);
@@ -167,28 +178,42 @@ router.post("/v1/risks", async (req, res) => {
     const residualImpact = boundedRiskScore(body.residualImpact, impact);
     const residualRiskLevel = classifyRisk(residualProbability, residualImpact);
 
-    const [risk] = await db.insert(risks).values({
+    const result = await runIdempotentMutation({
       userId,
-      code: body.code || `R-${Date.now().toString(36).toUpperCase()}`,
-      name: body.name,
-      description: body.description,
-      context: body.context,
-      standard: body.standard,
-      category: body.category,
-      probability,
-      impact,
-      riskLevel,
-      controls: body.controls,
-      owner: body.owner,
-      status: normalizeRiskStatus(body.status),
-      mitigation: body.mitigation,
-      dueDate: body.dueDate ? new Date(body.dueDate) : undefined,
-      residualProbability,
-      residualImpact,
-      residualRiskLevel,
-    }).returning();
-    res.status(201).json({ success: true, data: risk });
+      idempotencyKey,
+      requestBody: { method: "POST", path: "/v1/risks", body },
+      execute: async (tx) => {
+        const [risk] = await tx.insert(risks).values({
+          userId,
+          code: body.code || `R-${Date.now().toString(36).toUpperCase()}`,
+          name: body.name,
+          description: body.description,
+          context: body.context,
+          standard: body.standard,
+          category: body.category,
+          probability,
+          impact,
+          riskLevel,
+          controls: body.controls,
+          owner: body.owner,
+          status: normalizeRiskStatus(body.status),
+          mitigation: body.mitigation,
+          dueDate: body.dueDate ? new Date(body.dueDate) : undefined,
+          residualProbability,
+          residualImpact,
+          residualRiskLevel,
+        }).returning();
+        return { statusCode: 201, body: { success: true, data: risk } };
+      },
+    });
+    if (result.replayed) res.set("Idempotency-Replayed", "true");
+    res.status(result.statusCode).json(result.body);
   } catch (error) {
+    if (error instanceof IdempotencyConflictError) {
+      res.status(409).json({ success: false, error: error.message });
+      return;
+    }
+    req.log.error({ error }, "Failed to create risk");
     res.status(500).json({ success: false, error: "Failed to create risk" });
   }
 });
@@ -278,17 +303,36 @@ router.post("/v1/vendors", async (req, res) => {
     if (!userId) return;
 
     const body = req.body;
-    const [vendor] = await db.insert(vendors).values({
+    const idempotencyKey = normalizeIdempotencyKey(req.get("Idempotency-Key"));
+    if (!isValidIdempotencyKey(idempotencyKey)) {
+      res.status(400).json({ success: false, error: "Idempotency-Key must be 255 characters or fewer" });
+      return;
+    }
+    const result = await runIdempotentMutation({
       userId,
-      name: body.name,
-      category: body.category,
-      contactPerson: body.contactPerson,
-      email: body.email,
-      phone: body.phone,
-      status: body.status || "active",
-    }).returning();
-    res.status(201).json({ success: true, data: vendor });
+      idempotencyKey,
+      requestBody: { method: "POST", path: "/v1/vendors", body },
+      execute: async (tx) => {
+        const [vendor] = await tx.insert(vendors).values({
+          userId,
+          name: body.name,
+          category: body.category,
+          contactPerson: body.contactPerson,
+          email: body.email,
+          phone: body.phone,
+          status: body.status || "active",
+        }).returning();
+        return { statusCode: 201, body: { success: true, data: vendor } };
+      },
+    });
+    if (result.replayed) res.set("Idempotency-Replayed", "true");
+    res.status(result.statusCode).json(result.body);
   } catch (error) {
+    if (error instanceof IdempotencyConflictError) {
+      res.status(409).json({ success: false, error: error.message });
+      return;
+    }
+    req.log.error({ error }, "Failed to create vendor");
     res.status(500).json({ success: false, error: "Failed to create vendor" });
   }
 });

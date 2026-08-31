@@ -1,10 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, createIdempotencyKey } from '@/lib/api';
 
 export type OfflineCollection = 'risks' | 'vendors';
 
 export interface PendingCreate {
   id: string;
+  idempotencyKey: string;
   collection: OfflineCollection;
   endpoint: string;
   payload: Record<string, unknown>;
@@ -35,7 +36,11 @@ async function readQueue(userId: string): Promise<PendingCreate[]> {
 
   try {
     const parsed = JSON.parse(raw) as unknown;
-    return Array.isArray(parsed) ? (parsed as PendingCreate[]) : [];
+    if (!Array.isArray(parsed)) return [];
+    return (parsed as Array<PendingCreate & { idempotencyKey?: string }>).map(item => ({
+      ...item,
+      idempotencyKey: item.idempotencyKey ?? item.id,
+    }));
   } catch {
     return [];
   }
@@ -132,11 +137,13 @@ export async function createWithOfflineQueue<T extends { id: number }>(params: {
   optimistic: T;
 }): Promise<{ queued: boolean; data: T }> {
   const { userId, collection, endpoint, payload, optimistic } = params;
+  const idempotencyKey = createIdempotencyKey();
 
   try {
     const response = await apiFetch<{ success: boolean; data?: T }>(endpoint, {
       method: 'POST',
       body: JSON.stringify(payload),
+      headers: { 'Idempotency-Key': idempotencyKey },
     });
 
     return { queued: false, data: response.data ?? optimistic };
@@ -146,6 +153,7 @@ export async function createWithOfflineQueue<T extends { id: number }>(params: {
     const queue = await readQueue(userId);
     queue.push({
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      idempotencyKey,
       collection,
       endpoint,
       payload,
@@ -181,7 +189,11 @@ export async function syncPendingCreates(userId: string): Promise<SyncResult> {
     try {
       const response = await apiFetch<{ success: boolean; data?: { id: number } }>(
         item.endpoint,
-        { method: 'POST', body: JSON.stringify(item.payload) },
+        {
+          method: 'POST',
+          body: JSON.stringify(item.payload),
+          headers: { 'Idempotency-Key': item.idempotencyKey },
+        },
       );
       const cached = (await readCachedCollection<Record<string, unknown>>(
         userId,

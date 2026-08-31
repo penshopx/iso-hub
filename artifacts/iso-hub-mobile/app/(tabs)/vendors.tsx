@@ -16,6 +16,7 @@ import { useColors } from '@/hooks/useColors';
 import {
   apiFetch,
   cachedApiFetch,
+  createIdempotencyKey,
   enqueueOfflineMutation,
   hydrateQueryCache,
   isOfflineError,
@@ -146,13 +147,19 @@ export default function VendorsScreen() {
   const addMutation = useMutation<AddVendorResult, Error, AddVendorForm>({
     mutationFn: async (body): Promise<AddVendorResult> => {
       if (!scope) throw new Error('Sesi pengguna belum siap');
-      const request = { method: 'POST' as const, body: JSON.stringify(body) };
+      const idempotencyKey = createIdempotencyKey();
+      const request = {
+        method: 'POST' as const,
+        body: JSON.stringify(body),
+        headers: { 'Idempotency-Key': idempotencyKey },
+      };
       try {
         return await apiFetch<{ success: boolean }>('/v1/vendors', request);
       } catch (error) {
         if (!isOfflineError(error)) throw error;
         await enqueueOfflineMutation({
           scope,
+          idempotencyKey,
           resource: 'vendors',
           path: '/v1/vendors',
           method: 'POST',

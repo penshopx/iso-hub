@@ -27,6 +27,7 @@ export interface CachedValue<T> {
 
 export interface OfflineMutation {
   id: string;
+  idempotencyKey: string;
   scope: string;
   resource: 'risks' | 'vendors';
   path: string;
@@ -63,6 +64,24 @@ export function getOnlineStatus(): boolean {
 
 export function getSyncingStatus(): boolean {
   return syncing;
+}
+
+export function createIdempotencyKey(): string {
+  return `mobile-${Date.now()}-${Math.random().toString(36).slice(2, 14)}`;
+}
+
+function parseMutationQueue(stored: string | null): OfflineMutation[] {
+  if (!stored) return [];
+  try {
+    const parsed = JSON.parse(stored) as Array<OfflineMutation & { idempotencyKey?: string }>;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map(item => ({
+      ...item,
+      idempotencyKey: item.idempotencyKey ?? item.id,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 async function withQueueLock<T>(operation: () => Promise<T>): Promise<T> {
@@ -143,7 +162,7 @@ export async function hydrateQueryCache<TResponse, TQueryData>(
 export async function getQueuedMutationCount(scope?: string): Promise<number> {
   try {
     const stored = await AsyncStorage.getItem(QUEUE_KEY);
-    const queue = stored ? (JSON.parse(stored) as OfflineMutation[]) : [];
+    const queue = parseMutationQueue(stored);
     return queue.filter(item => !scope || item.scope === scope).length;
   } catch {
     return 0;
@@ -154,7 +173,7 @@ export async function enqueueOfflineMutation(mutation: Omit<OfflineMutation, 'id
   return withQueueLock(async () => {
     try {
       const stored = await AsyncStorage.getItem(QUEUE_KEY);
-      const queue = stored ? (JSON.parse(stored) as OfflineMutation[]) : [];
+      const queue = parseMutationQueue(stored);
       queue.push({
         ...mutation,
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
@@ -179,7 +198,7 @@ export async function syncQueuedMutations(scope?: string): Promise<{ synced: num
       let synced = 0;
       const resources = new Set<OfflineMutation['resource']>();
       const stored = await AsyncStorage.getItem(QUEUE_KEY);
-      const queue = stored ? (JSON.parse(stored) as OfflineMutation[]) : [];
+      const queue = parseMutationQueue(stored);
       const remaining: OfflineMutation[] = [];
       if (!queue.some(item => !scope || item.scope === scope)) {
         return { synced, resources };
@@ -205,7 +224,11 @@ export async function syncQueuedMutations(scope?: string): Promise<{ synced: num
         }
 
         try {
-          await apiFetchWithToken(item.path, { method: item.method, body: item.body }, syncToken);
+          await apiFetchWithToken(item.path, {
+            method: item.method,
+            body: item.body,
+            headers: { 'Idempotency-Key': item.idempotencyKey },
+          }, syncToken);
           synced += 1;
           resources.add(item.resource);
         } catch (error) {

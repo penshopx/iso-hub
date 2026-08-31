@@ -16,6 +16,7 @@ import { useColors } from '@/hooks/useColors';
 import {
   apiFetch,
   cachedApiFetch,
+  createIdempotencyKey,
   enqueueOfflineMutation,
   hydrateQueryCache,
   isOfflineError,
@@ -144,13 +145,19 @@ export default function RisksScreen() {
   const addMutation = useMutation<AddRiskResult, Error, AddRiskForm>({
     mutationFn: async (body): Promise<AddRiskResult> => {
       if (!scope) throw new Error('Sesi pengguna belum siap');
-      const request = { method: 'POST' as const, body: JSON.stringify(body) };
+      const idempotencyKey = createIdempotencyKey();
+      const request = {
+        method: 'POST' as const,
+        body: JSON.stringify(body),
+        headers: { 'Idempotency-Key': idempotencyKey },
+      };
       try {
         return await apiFetch<{ success: boolean }>('/v1/risks', request);
       } catch (error) {
         if (!isOfflineError(error)) throw error;
         await enqueueOfflineMutation({
           scope,
+          idempotencyKey,
           resource: 'risks',
           path: '/v1/risks',
           method: 'POST',

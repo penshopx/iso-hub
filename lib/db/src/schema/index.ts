@@ -1,4 +1,4 @@
-import { pgTable, text, integer, real, serial, boolean, timestamp, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, real, serial, boolean, timestamp, index, uniqueIndex, jsonb } from "drizzle-orm/pg-core";
 export * from "./auth";
 
 export const users = pgTable("users", {
@@ -261,6 +261,20 @@ export const vendors = pgTable("vendors", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+export const idempotencyKeys = pgTable("idempotency_keys", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  key: text("key").notNull(),
+  requestHash: text("request_hash").notNull(),
+  statusCode: integer("status_code").notNull(),
+  responseBody: jsonb("response_body").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  userKeyUnique: uniqueIndex("idempotency_keys_user_key_unique").on(table.userId, table.key),
+  userIndex: index("idempotency_keys_user_id_idx").on(table.userId),
+}));
 
 export const opcTasks = pgTable("opc_tasks", {
   id: serial("id").primaryKey(),

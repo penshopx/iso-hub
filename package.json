@@ -8,6 +8,7 @@
     "check:risk-rules": "pnpm --filter @workspace/api-server exec esbuild ../../scripts/check-risk-rules.ts --bundle --platform=node --format=esm --outfile=/tmp/check-risk-rules.mjs && node /tmp/check-risk-rules.mjs",
     "check:qms-policies": "pnpm --filter @workspace/api-server exec esbuild ../../scripts/check-qms-policies.ts --bundle --platform=node --format=esm --outfile=/tmp/check-qms-policies.mjs && node /tmp/check-qms-policies.mjs",
     "check:notification-preferences": "pnpm --filter @workspace/api-server exec esbuild ../../scripts/check-notification-preferences.ts --bundle --platform=node --format=esm --outfile=/tmp/check-notification-preferences.mjs && node /tmp/check-notification-preferences.mjs",
+    "check:idempotency": "pnpm --filter @workspace/api-server exec esbuild ../../scripts/check-idempotency.ts --bundle --platform=node --format=cjs --outfile=/tmp/check-idempotency.cjs && node /tmp/check-idempotency.cjs",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
   },
