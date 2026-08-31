@@ -3,3 +3,4 @@
 - [Pitch deck language variants](pitch-deck-language-variants.md) — keep Indonesian and English investor decks separate so edits and exports never overwrite another language.
 - [Postgres migration baseline](postgres-migration-baseline.md) — this existing database has no Drizzle snapshot baseline; use additive idempotent SQL instead of generating a full initial migration.
 - [Expo push delivery concurrency](expo-push-delivery-concurrency.md) — serialize external sends across API instances and fence retryable alert claims.
+- [Composite DB declarations](composite-db-declarations.md) — rebuild DB declarations after schema export changes before trusting downstream API typechecks.
