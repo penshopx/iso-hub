@@ -2,27 +2,28 @@ uploads = []
 generated = []
 
 [[outputs]]
-id = "zjq-dcdCZR_MpjIchIKHK"
-uri = "file://artifacts/iso-hub-promo/public/audio/bg_music.mp3"
-type = "audio"
-title = "ISO Hub promo background music"
-logical_id = "0235a39d-764d-4158-af4d-74b9fc589b52"
-
-[[outputs]]
-id = "Qc7oMhYnWL72fhY1WUcMQ"
-uri = "file://artifacts/iso-hub-promo/public/audio/voiceover_id.mp3"
-type = "audio"
-title = "Voiceover ISO Hub — Bahasa Indonesia"
-description = "Narasi Bahasa Indonesia berdurasi sekitar 35 detik untuk promo ISO Hub."
-logical_id = "a06e83e3-9623-4bf8-a994-a566c5eeab75"
-
-[[outputs]]
-id = "gJhGXEIbQvcOpc22hwgY5"
-uri = "file://.local/outputs/ISO-Hub-Pitch-Deck.pptx"
+id = "YfjPHIYmCCZMdp-jk8mZW"
+uri = "file://.local/outputs/ISO-Hub-Pitch-Deck-English.pptx"
 type = "slides"
-title = "ISO Hub Pitch Deck (PPTX)"
-description = "PowerPoint pitch deck ISO Hub dengan 10 slide dan presenter talking points."
-logical_id = "248fccf0-63de-4dd3-988f-27490977b2e3"
+title = "ISO Hub Pitch Deck — English (PPTX)"
+description = "English investor pitch deck with 10 slides and English presenter notes."
+logical_id = "9d10b8b3-69f2-4d11-81fc-0ca3161c9bf1"
+
+[[outputs]]
+id = "YfjPHIYmCCZMdp-jk8mZW"
+uri = "file://.local/outputs/ISO-Hub-Pitch-Deck-English.pptx"
+type = "slides"
+title = "ISO Hub Pitch Deck — English (PPTX)"
+description = "English investor pitch deck with 10 slides and English presenter notes."
+logical_id = "9d10b8b3-69f2-4d11-81fc-0ca3161c9bf1"
+
+[[outputs]]
+id = "YfjPHIYmCCZMdp-jk8mZW"
+uri = "file://.local/outputs/ISO-Hub-Pitch-Deck-English.pptx"
+type = "slides"
+title = "ISO Hub Pitch Deck — English (PPTX)"
+description = "English investor pitch deck with 10 slides and English presenter notes."
+logical_id = "9d10b8b3-69f2-4d11-81fc-0ca3161c9bf1"
 
 [[outputs]]
 id = "YfjPHIYmCCZMdp-jk8mZW"
