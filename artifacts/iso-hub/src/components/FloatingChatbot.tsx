@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from 'wouter';
+import { useAppPreferences } from "@/components/app-preferences-context";
 
 interface Message {
   id: string;
@@ -45,6 +46,7 @@ const quickActions = [
 
 export default function FloatingChatbot() {
   const [, navigate] = useLocation();
+  const { speak } = useAppPreferences();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -143,6 +145,7 @@ export default function FloatingChatbot() {
           intent: data.data.intent,
         };
         setMessages((prev) => [...prev, assistantMessage]);
+        speak(assistantMessage.content);
       } else {
         const errorMessage: Message = {
           id: crypto.randomUUID(),

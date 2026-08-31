@@ -32,6 +32,7 @@ import AgentsPage from "@/app/agents/page";
 import IsoGeneratorPage from "@/app/iso-generator/page";
 import OPCPage from "@/app/opc/page";
 import FloatingChatbot from "@/components/FloatingChatbot";
+import { AppPreferences, AppPreferencesProvider } from "@/components/app-preferences";
 
 const queryClient = new QueryClient();
 
@@ -79,9 +80,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
+        <AppPreferencesProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+          </WouterRouter>
+          <AppPreferences />
+        </AppPreferencesProvider>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

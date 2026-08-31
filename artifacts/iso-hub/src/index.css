@@ -270,6 +270,104 @@
 
 }
 
+/* The existing product UI uses a dark-first utility palette. These targeted
+   overrides make the global light theme useful without changing every page's
+   product-specific color accents. */
+html[data-theme="light"] {
+  color-scheme: light;
+}
+
+html[data-theme="light"] body {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+html[data-theme="light"] [class*="bg-neutral-950"],
+html[data-theme="light"] [class*="bg-neutral-900"] {
+  background-color: #f8fafc !important;
+}
+
+html[data-theme="light"] [class*="bg-neutral-800"] {
+  background-color: #ffffff !important;
+}
+
+html[data-theme="light"] [class*="bg-neutral-700"],
+html[data-theme="light"] [class*="bg-neutral-600"] {
+  background-color: #e2e8f0 !important;
+}
+
+html[data-theme="light"] [class*="text-neutral-100"],
+html[data-theme="light"] [class*="text-neutral-200"],
+html[data-theme="light"] [class*="text-neutral-300"] {
+  color: #1e293b !important;
+}
+
+html[data-theme="light"] [class*="text-neutral-400"],
+html[data-theme="light"] [class*="text-neutral-500"],
+html[data-theme="light"] [class*="text-neutral-600"] {
+  color: #475569 !important;
+}
+
+/* Neutral surfaces become light in this theme, so inherited white text must
+   become dark as well. Colored actions are restored below. */
+html[data-theme="light"] [class~="text-white"] {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] [class*="text-blue-100"],
+html[data-theme="light"] [class*="text-blue-200"] {
+  color: #1d4ed8 !important;
+}
+
+html[data-theme="light"] [class*="border-neutral-800"],
+html[data-theme="light"] [class*="border-neutral-700"],
+html[data-theme="light"] [class*="border-neutral-600"] {
+  border-color: #cbd5e1 !important;
+}
+
+html[data-theme="light"] [class*="bg-[#0a0a0a]"],
+html[data-theme="light"] [class*="bg-[#111]"] {
+  background-color: #ffffff !important;
+}
+
+html[data-theme="light"] [class*="bg-black"] {
+  background-color: #f1f5f9 !important;
+}
+
+html[data-theme="light"] .app-preferences {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+/* Preserve readable white labels on colored actions and the gradient chatbot header. */
+html[data-theme="light"] [class*="bg-blue-"] .text-white,
+html[data-theme="light"] [class*="bg-violet-"] .text-white,
+html[data-theme="light"] [class*="bg-purple-"] .text-white,
+html[data-theme="light"] [class*="bg-indigo-"] .text-white,
+html[data-theme="light"] [class*="bg-emerald-"] .text-white,
+html[data-theme="light"] [class*="bg-orange-"] .text-white,
+html[data-theme="light"] [class*="from-blue-"] .text-white {
+  color: #ffffff !important;
+}
+
+/* Covers elements that carry their own colored background and text-white
+   classes, such as primary buttons and status actions. */
+html[data-theme="light"] [class~="text-white"][class*="bg-blue-"],
+html[data-theme="light"] [class~="text-white"][class*="bg-violet-"],
+html[data-theme="light"] [class~="text-white"][class*="bg-purple-"],
+html[data-theme="light"] [class~="text-white"][class*="bg-indigo-"],
+html[data-theme="light"] [class~="text-white"][class*="bg-emerald-"],
+html[data-theme="light"] [class~="text-white"][class*="bg-orange-"],
+html[data-theme="light"] [class~="text-white"][class*="bg-red-"],
+html[data-theme="light"] [class~="text-white"][class*="bg-green-"],
+html[data-theme="light"] [class~="text-white"][class*="bg-cyan-"],
+html[data-theme="light"] [class~="text-white"][class*="bg-pink-"],
+html[data-theme="light"] [class~="text-white"][class*="bg-gradient"],
+html[data-theme="light"] [class~="text-white"][class*="from-blue-"] {
+  color: #ffffff !important;
+}
+
 @layer base {
   * {
     @apply border-border;
