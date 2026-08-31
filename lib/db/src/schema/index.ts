@@ -19,6 +19,7 @@ export const users = pgTable("users", {
 
 export const isoDocuments = pgTable("iso_documents", {
   id: serial("id").primaryKey(),
+  authorId: text("author_id"),
   userId: text("user_id"),
   title: text("title").notNull(),
   type: text("type").notNull(),
@@ -27,6 +28,10 @@ export const isoDocuments = pgTable("iso_documents", {
   content: text("content"),
   status: text("status").default("draft"),
   version: integer("version").default(1),
+  reviewerId: text("reviewer_id"),
+  approverId: text("approver_id"),
+  // Legacy display fields are kept for existing personal-workspace records.
+  // New assignments must use the corresponding *Id fields above.
   reviewer: text("reviewer"),
   approver: text("approver"),
   reviewDueDate: timestamp("review_due_date"),
@@ -44,11 +49,26 @@ export const documentRevisions = pgTable("document_revisions", {
   userId: text("user_id").notNull(),
   version: integer("version").notNull(),
   status: text("status").notNull(),
+  actorId: text("actor_id"),
   changedBy: text("changed_by"),
   changeSummary: text("change_summary"),
   content: text("content"),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export const documentTeamMembers = pgTable("document_team_members", {
+  id: serial("id").primaryKey(),
+  teamOwnerId: text("team_owner_id").notNull(),
+  userId: text("user_id").notNull(),
+  role: text("role").notNull(),
+  status: text("status").notNull().default("active"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  userRoleUnique: uniqueIndex("document_team_members_owner_user_role_unique").on(table.teamOwnerId, table.userId, table.role),
+  teamIndex: index("document_team_members_team_owner_id_idx").on(table.teamOwnerId),
+  userIndex: index("document_team_members_user_id_idx").on(table.userId),
+}));
 
 export const hazards = pgTable("hazards", {
   id: serial("id").primaryKey(),

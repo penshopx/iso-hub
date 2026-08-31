@@ -11,6 +11,12 @@ type Document = {
   content: string;
   status: 'draft' | 'review' | 'approved' | 'rejected';
   version: string;
+  authorId?: string;
+  authorName?: string;
+  reviewerId?: string | null;
+  approverId?: string | null;
+  reviewerName?: string | null;
+  approverName?: string | null;
   reviewer?: string;
   approver?: string;
   reviewDueDate?: string;
@@ -28,7 +34,17 @@ type Revision = {
   version: string;
   changeSummary: string;
   status: string;
+  actorId?: string | null;
+  actorName?: string | null;
   createdAt: string;
+};
+
+type TeamMember = {
+  userId: string;
+  name: string;
+  email?: string | null;
+  role: 'author' | 'reviewer' | 'approver';
+  status: string;
 };
 
 const statusColors: Record<string, string> = {
@@ -83,6 +99,13 @@ export default function DokumenPage() {
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [history, setHistory] = useState<Revision[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [workflowError, setWorkflowError] = useState<string | null>(null);
+  const [memberEmail, setMemberEmail] = useState("");
+  const [memberRole, setMemberRole] = useState<"reviewer" | "approver">("reviewer");
+  const [memberSaving, setMemberSaving] = useState(false);
+  const [memberMessage, setMemberMessage] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<string>("Semua");
 
   const fetchDocuments = async () => {
@@ -101,8 +124,56 @@ export default function DokumenPage() {
     }
   };
 
+  const fetchTeamMembers = async () => {
+    try {
+      const res = await fetch('/api/iso/team-members');
+      if (res.status === 401) throw { status: 401, message: 'Unauthorized' };
+      if (!res.ok) throw new Error('Gagal memuat anggota tim');
+      const json = await res.json();
+      setTeamMembers(json.data || []);
+    } catch (err: any) {
+      if (err.status === 401) setError(err as Error);
+      else console.error(err);
+    }
+  };
+
+  const fetchCurrentUser = async () => {
+    try {
+      const res = await fetch('/api/auth/user');
+      if (!res.ok) return;
+      const json = await res.json();
+      setCurrentUserId(json.user?.id || null);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddMember = async () => {
+    if (!memberEmail.trim()) return;
+    setMemberSaving(true);
+    setMemberMessage(null);
+    try {
+      const res = await fetch('/api/iso/team-members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: memberEmail.trim(), role: memberRole }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'Gagal menambahkan anggota tim');
+      await fetchTeamMembers();
+      setMemberEmail("");
+      setMemberMessage(`${json.data?.name || 'Anggota'} ditambahkan sebagai ${memberRole}.`);
+    } catch (err: any) {
+      setMemberMessage(err.message || 'Gagal menambahkan anggota tim');
+    } finally {
+      setMemberSaving(false);
+    }
+  };
+
   useEffect(() => {
     fetchDocuments();
+    fetchTeamMembers();
+    fetchCurrentUser();
   }, []);
 
   const loadHistory = async (id: string | number) => {
@@ -134,8 +205,8 @@ export default function DokumenPage() {
         category: formData.category,
         isoStandard: formData.isoStandard,
         content: formData.content,
-        reviewer: formData.reviewer || undefined,
-        approver: formData.approver || undefined,
+        reviewerId: formData.reviewerId || null,
+        approverId: formData.approverId || null,
         reviewDueDate: formData.reviewDueDate || undefined,
         changeSummary: formData.changeSummary || undefined,
       };
@@ -149,7 +220,9 @@ export default function DokumenPage() {
       if (res.status === 401) throw { status: 401, message: 'Unauthorized' };
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || 'Gagal menyimpan dokumen');
+        const error = new Error(errData.error || errData.message || 'Gagal menyimpan dokumen') as Error & { code?: string };
+        error.code = errData.code;
+        throw error;
       }
 
       await fetchDocuments();
@@ -164,6 +237,7 @@ export default function DokumenPage() {
   };
 
   const handleStatusChange = async (id: string | number, newStatus: string, changeSummary?: string) => {
+    setWorkflowError(null);
     try {
       const res = await fetch(`/api/iso/documents/${id}`, {
         method: 'PATCH',
@@ -171,20 +245,36 @@ export default function DokumenPage() {
         body: JSON.stringify({ status: newStatus, changeSummary: changeSummary || `Status diubah menjadi ${newStatus}` })
       });
       if (res.status === 401) throw { status: 401, message: 'Unauthorized' };
-      if (!res.ok) throw new Error('Gagal memproses perubahan status');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        const error = new Error(errData.error || errData.message || 'Gagal memproses perubahan status') as Error & { code?: string };
+        error.code = errData.code;
+        throw error;
+      }
       
+      const json = await res.json();
       await fetchDocuments();
       if (selectedDoc && selectedDoc.id === id) {
-        setSelectedDoc({ ...selectedDoc, status: newStatus as any });
+        setSelectedDoc(json.data || { ...selectedDoc, status: newStatus as any });
         loadHistory(id);
       }
     } catch (err: any) {
       if (err.status === 401) setError(err as Error);
-      else alert(err.message || 'Terjadi kesalahan sistem');
+      else setWorkflowError(err.message || 'Terjadi kesalahan sistem');
     }
   };
 
+  const membersForRole = (role: TeamMember["role"]) => {
+    const seen = new Set<string>();
+    return teamMembers.filter((member) => {
+      if (member.role !== role || seen.has(member.userId)) return false;
+      seen.add(member.userId);
+      return true;
+    });
+  };
+
   const openDetail = (doc: Document) => {
+    setWorkflowError(null);
     setSelectedDoc(doc);
     loadHistory(doc.id);
   };
@@ -365,14 +455,61 @@ export default function DokumenPage() {
                 <option value="ISO 27001:2022">ISO 27001:2022</option>
               </select>
             </div>
+            <div className="rounded-xl border border-neutral-800 bg-[#111] p-4">
+              <div className="mb-3">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">Tambahkan Anggota Tim</div>
+                <p className="mt-1 text-xs text-neutral-500">Gunakan email akun ISO Hub yang sudah pernah masuk.</p>
+              </div>
+              <div className="grid grid-cols-[1fr_120px_auto] gap-2">
+                <input
+                  type="email"
+                  value={memberEmail}
+                  onChange={e => setMemberEmail(e.target.value)}
+                  className="min-w-0 bg-[#0a0a0a] border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
+                  placeholder="anggota@perusahaan.com"
+                />
+                <select
+                  value={memberRole}
+                  onChange={e => setMemberRole(e.target.value as "reviewer" | "approver")}
+                  className="bg-[#0a0a0a] border border-neutral-800 rounded-lg px-2 py-2 text-sm text-white focus:border-blue-500 outline-none"
+                >
+                  <option value="reviewer">Reviewer</option>
+                  <option value="approver">Approver</option>
+                </select>
+                <button
+                  type="button"
+                  disabled={memberSaving || !memberEmail.trim()}
+                  onClick={handleAddMember}
+                  className="rounded-lg bg-neutral-800 px-3 py-2 text-xs font-bold text-white hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {memberSaving ? '...' : 'Tambah'}
+                </button>
+              </div>
+              {memberMessage && <p className="mt-2 text-xs text-blue-300">{memberMessage}</p>}
+            </div>
             <div>
-              <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">Reviewer (Opsional)</label>
-              <input type="text" value={formData.reviewer || ""} onChange={e => setFormData({...formData, reviewer: e.target.value})} className="w-full bg-[#0a0a0a] border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none transition-all placeholder-neutral-700" placeholder="Nama atau Departemen" />
+              <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">Reviewer</label>
+              <select value={formData.reviewerId || ""} onChange={e => setFormData({...formData, reviewerId: e.target.value || null})} className="w-full bg-[#0a0a0a] border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none transition-all">
+                <option value="">Pilih reviewer sebelum mengajukan review</option>
+                {membersForRole("reviewer").map(member => (
+                  <option key={member.userId} value={member.userId}>{member.name}{member.email ? ` — ${member.email}` : ''}</option>
+                ))}
+              </select>
+              {membersForRole("reviewer").length === 0 && (
+                <p className="mt-2 text-xs text-amber-400">Belum ada anggota tim dengan role reviewer aktif.</p>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">Approver (Opsional)</label>
-                <input type="text" value={formData.approver || ""} onChange={e => setFormData({...formData, approver: e.target.value})} className="w-full bg-[#0a0a0a] border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none transition-all" />
+                <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">Approver</label>
+                <select value={formData.approverId || ""} onChange={e => setFormData({...formData, approverId: e.target.value || null})} className="w-full bg-[#0a0a0a] border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none transition-all">
+                  <option value="">Pilih approver</option>
+                  {membersForRole("approver")
+                    .filter(member => member.userId !== (formData.authorId || currentUserId))
+                    .map(member => (
+                      <option key={member.userId} value={member.userId}>{member.name}{member.email ? ` — ${member.email}` : ''}</option>
+                    ))}
+                </select>
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">Batas Review</label>
@@ -416,22 +553,33 @@ export default function DokumenPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-px bg-neutral-800 overflow-hidden rounded-lg">
                   <div className="bg-[#0a0a0a] p-3">
-                    <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest mb-1">Tipe / Kategori</div>
-                    <div className="text-sm text-neutral-200">{selectedDoc.type} &mdash; {selectedDoc.category}</div>
+                    <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest mb-1">Pembuat</div>
+                    <div className="text-sm text-neutral-200">{selectedDoc.authorName || selectedDoc.authorId || '-'}</div>
                   </div>
                   <div className="bg-[#0a0a0a] p-3">
                     <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest mb-1">Reviewer</div>
-                    <div className="text-sm text-neutral-200">{selectedDoc.reviewer || '-'}</div>
+                    <div className="text-sm text-neutral-200">{selectedDoc.reviewerName || selectedDoc.reviewer || 'Belum ditugaskan'}</div>
                   </div>
                   <div className="bg-[#0a0a0a] p-3">
                     <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest mb-1">Approver</div>
-                    <div className="text-sm text-neutral-200">{selectedDoc.approver || '-'}</div>
+                    <div className="text-sm text-neutral-200">{selectedDoc.approverName || selectedDoc.approver || 'Belum ditugaskan'}</div>
                   </div>
                   <div className="bg-[#0a0a0a] p-3">
-                    <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest mb-1">Distribusi</div>
-                    <div className="text-sm text-neutral-200">{selectedDoc.distributedAt ? new Date(selectedDoc.distributedAt).toLocaleDateString("id-ID") : 'Belum didistribusikan'}</div>
+                    <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest mb-1">Tipe / Kategori</div>
+                    <div className="text-sm text-neutral-200">{selectedDoc.type} &mdash; {selectedDoc.category}</div>
                   </div>
                 </div>
+                {(!selectedDoc.reviewerId || !selectedDoc.approverId) && (
+                  <div className="mt-3 rounded-lg border border-amber-900/60 bg-amber-950/30 px-3 py-2 text-xs text-amber-300">
+                    Dokumen belum dapat diajukan: reviewer dan approver berbasis identitas user harus ditugaskan terlebih dahulu.
+                  </div>
+                )}
+                {selectedDoc.status === 'rejected' && selectedDoc.changeSummary && (
+                  <div className="mt-3 rounded-lg border border-red-900/60 bg-red-950/30 px-3 py-2">
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-red-400">Alasan Penolakan</div>
+                    <p className="mt-1 text-sm text-red-200">{selectedDoc.changeSummary}</p>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -459,6 +607,7 @@ export default function DokumenPage() {
                             <span className="text-[10px] text-neutral-500 font-mono">{new Date(rev.createdAt).toLocaleDateString('id-ID')}</span>
                           </div>
                           <p className="text-xs text-neutral-400">{rev.changeSummary}</p>
+                           <p className="mt-1 text-[10px] text-neutral-500">Pelaku: {rev.actorName || rev.actorId || 'Tidak diketahui'}</p>
                         </div>
                       </div>
                     ))
@@ -468,28 +617,44 @@ export default function DokumenPage() {
             </div>
 
             {/* Workflow Actions */}
-            <div className="mt-8 pt-4 border-t border-neutral-800 grid grid-cols-2 gap-2">
-              {selectedDoc.status === 'draft' && (
-                <>
-                  <button onClick={() => { setFormData(selectedDoc); setFormOpen(true); }} className="px-4 py-3 bg-[#111] hover:bg-[#1a1a1a] text-white text-xs font-bold rounded-lg transition-colors uppercase tracking-wider border border-neutral-800">Edit Draft</button>
-                  <button onClick={() => handleStatusChange(selectedDoc.id, 'review')} className="px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-colors uppercase tracking-wider shadow-[0_0_15px_rgba(37,99,235,0.3)]">Ajukan Review</button>
-                </>
+            <div className="mt-8 pt-4 border-t border-neutral-800">
+              {workflowError && (
+                <div role="alert" className="mb-3 rounded-lg border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm text-red-300">
+                  <div className="font-bold text-red-400">Tindakan ditolak</div>
+                  <div className="mt-0.5">{workflowError}</div>
+                </div>
               )}
-              {selectedDoc.status === 'review' && (
-                <>
-                  <button onClick={() => handleStatusChange(selectedDoc.id, 'rejected')} className="px-4 py-3 bg-red-950 hover:bg-red-900 text-red-400 text-xs font-bold rounded-lg transition-colors uppercase tracking-wider border border-red-900/50">Tolak</button>
+              <div className="grid grid-cols-2 gap-2">
+                {selectedDoc.status === 'draft' && selectedDoc.authorId === currentUserId && (
+                  <>
+                    <button onClick={() => { setFormData(selectedDoc); setFormOpen(true); }} className="px-4 py-3 bg-[#111] hover:bg-[#1a1a1a] text-white text-xs font-bold rounded-lg transition-colors uppercase tracking-wider border border-neutral-800">Edit Draft</button>
+                    <button disabled={!selectedDoc.reviewerId || !selectedDoc.approverId} onClick={() => handleStatusChange(selectedDoc.id, 'review')} className="px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-colors uppercase tracking-wider shadow-[0_0_15px_rgba(37,99,235,0.3)] disabled:cursor-not-allowed disabled:opacity-40">Ajukan Review</button>
+                  </>
+                )}
+                {selectedDoc.status === 'review' && selectedDoc.reviewerId === currentUserId && (
+                  <button onClick={() => {
+                    const reason = prompt("Alasan penolakan:");
+                    if (reason?.trim()) handleStatusChange(selectedDoc.id, 'rejected', reason.trim());
+                  }} className="px-4 py-3 bg-red-950 hover:bg-red-900 text-red-400 text-xs font-bold rounded-lg transition-colors uppercase tracking-wider border border-red-900/50">Tolak</button>
+                )}
+                {selectedDoc.status === 'review' && selectedDoc.approverId === currentUserId && (
                   <button onClick={() => handleStatusChange(selectedDoc.id, 'approved')} className="px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition-colors uppercase tracking-wider shadow-[0_0_15px_rgba(16,185,129,0.2)]">Setujui</button>
-                </>
-              )}
-              {(selectedDoc.status === 'approved' || selectedDoc.status === 'rejected') && (
-                <button onClick={() => {
-                  const summary = prompt("Alasan revisi:");
-                  if (summary !== null) handleStatusChange(selectedDoc.id, 'draft', summary || 'Revisi dokumen');
-                }} className="col-span-2 px-4 py-3 bg-[#111] hover:bg-[#1a1a1a] text-white text-xs font-bold rounded-lg transition-colors border border-neutral-800 flex items-center justify-between uppercase tracking-wider">
-                  <span>Revisi (Kembali ke Draft)</span>
-                  <svg className="w-4 h-4 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
-                </button>
-              )}
+                )}
+                {(selectedDoc.status === 'approved' || selectedDoc.status === 'rejected') && selectedDoc.authorId === currentUserId && (
+                  <button onClick={() => {
+                    const summary = prompt("Alasan revisi:");
+                    if (summary !== null) handleStatusChange(selectedDoc.id, 'draft', summary || 'Revisi dokumen');
+                  }} className="col-span-2 px-4 py-3 bg-[#111] hover:bg-[#1a1a1a] text-white text-xs font-bold rounded-lg transition-colors border border-neutral-800 flex items-center justify-between uppercase tracking-wider">
+                    <span>Revisi (Kembali ke Draft)</span>
+                    <svg className="w-4 h-4 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                  </button>
+                )}
+                {selectedDoc.status === 'review' && selectedDoc.reviewerId !== currentUserId && selectedDoc.approverId !== currentUserId && (
+                  <div className="col-span-2 rounded-lg border border-neutral-800 bg-[#111] px-3 py-3 text-xs text-neutral-400">
+                    Menunggu tindakan reviewer atau approver yang ditugaskan.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
