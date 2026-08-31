@@ -1,0 +1,29 @@
+kind = "video"
+videoAspectRatio = "9:16"
+previewPath = "/iso-hub-promo-shorts/"
+title = "ISO Hub Shorts Promo"
+description = "A vertical 15-second ISO Hub promo for Reels and Shorts, with Indonesian narration, AI Agents messaging, and a clear certification call to action."
+version = "1.0.0"
+id = "artifacts/iso-hub-promo-shorts"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/iso-hub-promo-shorts/" ]
+localPort = 24102
+
+[services.development]
+run = "pnpm --filter @workspace/iso-hub-promo-shorts run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/iso-hub-promo-shorts", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/iso-hub-promo-shorts/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24102"
+BASE_PATH = "/iso-hub-promo-shorts/"
