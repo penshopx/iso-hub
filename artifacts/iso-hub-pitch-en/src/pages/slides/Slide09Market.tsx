@@ -60,7 +60,7 @@ export default function Slide09Market() {
                 WebkitTextFillColor: 'transparent',
               }}
             >
-              Tumbuh Pesat
+              Growing Fast
             </span>
           </h2>
         </div>
@@ -108,7 +108,7 @@ export default function Slide09Market() {
               </div>
               <div>
                 <h4 style={{ fontFamily: 'var(--font-display-family)', fontWeight: 700, fontSize: '1.8vw', color: '#6EE7B7', marginBottom: '0.6vh' }}>
-                  Regulasi Pemerintah
+                  Government Regulation
                 </h4>
                 <p style={{ fontFamily: 'var(--font-body-family)', fontSize: '1.45vw', color: '#94A3B8', lineHeight: 1.4 }}>
                   ISO certification is increasingly required for government tenders and Indonesian product exports

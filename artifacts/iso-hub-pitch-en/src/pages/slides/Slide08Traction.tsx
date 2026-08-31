@@ -157,7 +157,7 @@ export default function Slide08Traction() {
                 marginTop: '1vh',
               }}
             >
-              Standar ISO Didukung
+              ISO Standards Supported
             </div>
             <div
               style={{

@@ -41,7 +41,7 @@ export default function Slide07Standards() {
               marginBottom: '1vh',
             }}
           >
-            Standar yang Didukung
+            Supported Standards
           </p>
           <h2
             style={{
@@ -53,7 +53,7 @@ export default function Slide07Standards() {
               lineHeight: 1.1,
             }}
           >
-            9+ Standar ISO,{' '}
+            9+ ISO Standards,{' '}
             <span
               style={{
                 background: 'linear-gradient(90deg, #10B981, #3B82F6)',
