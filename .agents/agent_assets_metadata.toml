@@ -15,7 +15,7 @@ uri = "file://.local/outputs/ISO-Hub-Pitch-Deck-English.pptx"
 type = "slides"
 title = "ISO Hub Pitch Deck — English (PPTX)"
 description = "English investor pitch deck with 10 slides and English presenter notes."
-logical_id = "9d10b8b3-69f2-4d11-81fc-0ca3161c9bf1"
+logical_id = "b4a660b4-9fd3-4317-88da-66541a3809e8"
 
 [[outputs]]
 id = "YfjPHIYmCCZMdp-jk8mZW"
@@ -23,7 +23,7 @@ uri = "file://.local/outputs/ISO-Hub-Pitch-Deck-English.pptx"
 type = "slides"
 title = "ISO Hub Pitch Deck — English (PPTX)"
 description = "English investor pitch deck with 10 slides and English presenter notes."
-logical_id = "9d10b8b3-69f2-4d11-81fc-0ca3161c9bf1"
+logical_id = "4ef0a9f5-35e9-40ea-941c-9da561df83cd"
 
 [[outputs]]
 id = "YfjPHIYmCCZMdp-jk8mZW"
@@ -31,4 +31,4 @@ uri = "file://.local/outputs/ISO-Hub-Pitch-Deck-English.pptx"
 type = "slides"
 title = "ISO Hub Pitch Deck — English (PPTX)"
 description = "English investor pitch deck with 10 slides and English presenter notes."
-logical_id = "9d10b8b3-69f2-4d11-81fc-0ca3161c9bf1"
+logical_id = "02afac4d-e418-46af-af45-19cda6eb2ea6"
